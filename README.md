@@ -1,4 +1,4 @@
-# Gerador de Projeto Pedagógico dos Cursos Técnicos
+# Gerador de PPC para Cursos Técnicos
 
 Este é um gerador de Projeto Pedagógico de Curso (PPC) para os cursos técnicos da Educação Profissional Técnica de Nível Médio (EPTNM) da Universidade Federal de Ciência e Inovação de Minas Gerais (UFCIMG), o antigo CEFET-MG.
 
