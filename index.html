@@ -113,7 +113,7 @@ table.t tr.hdr th{background:#fafbfc;font-size:11px;padding:4px 6px}
 .auto{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .auto>div{background:#f2f5f9;border:1px solid #dfe5ee;border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;min-width:180px}
 .auto span{font-size:11px;color:var(--mut);font-weight:600}.auto b{font-size:13px;font-weight:600}
-.tag{font-size:10.5px;font-weight:700;background:#eef0f3;color:var(--mut);border-radius:999px;padding:1px 7px;margin-left:4px}
+.tag{font-size:10.5px;font-weight:700;background:#eef0f3;color:var(--mut);border-radius:999px;padding:1px 7px;margin-left:4px}.tag.prop{background:#fdecea;color:#c62828}
 .ro{background:#fafbfc;border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:13px;line-height:1.5;max-height:340px;overflow:auto}
 .dot.p{background:#9aa6b8}
 tr.pad td{background:#fafbfd}
@@ -203,13 +203,14 @@ header .brand{flex:1 1 auto}
 #hdrBtns{flex:1 0 100%;justify-content:flex-start}
 header{row-gap:8px}
 header .sub{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;max-width:none}
-header .hcred{font-size:10.5px;color:#94a3b8}header .hcred a{color:#94a3b8;text-decoration:underline dotted}header .hcred a:hover{color:var(--acc2)}
+header .lcol{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}header .hcred{font-size:9.5px;line-height:1.2;color:#94a3b8;text-align:center;white-space:nowrap}header .hcred a{color:#94a3b8;text-decoration:underline dotted}header .hcred a:hover{color:var(--acc2)}
 .rasc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#e6f6f6;border:1px solid #bfe8e8;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13.5px}.rasc span{flex:1}
+.sobre p{margin:0 0 8px;text-align:justify}.sobre ol,.sobre ul{margin:4px 0 8px;padding-left:22px}.sobre li{margin:3px 0}.sobre code{background:#eef0f3;border-radius:4px;padding:0 4px}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><img id="hdrLogo" alt="UFCIMG"><span class="bsep"></span><div><h1><span id="hdrTitulo">Gerador de Projeto Pedagógico dos Cursos Técnicos da Educação Profissional Técnica de Nível Médio</span> <span class="ver" id="hdrVer" title="Versão do gerador: confira se é a mais recente"></span></h1><div class="sub"><span id="hdrCurso">Projeto sem nome</span><span class="hcred" id="hdrCred"></span></div></div></div>
+  <div class="brand"><div class="lcol"><img id="hdrLogo" alt="UFCIMG"><span class="hcred" id="hdrCred"></span></div><span class="bsep"></span><div><h1><span id="hdrTitulo">Gerador de Projeto Pedagógico dos Cursos Técnicos da Educação Profissional Técnica de Nível Médio</span> <span class="ver" id="hdrVer" title="Versão do gerador: confira se é a mais recente"></span></h1><div class="sub"><span id="hdrCurso">Projeto sem nome</span></div></div></div>
   <div class="sp"></div>
   <span id="hdrStatus"></span>
   <span id="hdrBtns"></span>
@@ -1108,7 +1109,7 @@ header .hcred{font-size:10.5px;color:#94a3b8}header .hcred a{color:#94a3b8;text-
       { xml: para(run(inst, { bold: true, size: 10 }), { style: 'Tabela', align: 'center', spacing: [40, 0] }) + para(run(I.diretoria, { bold: true, size: 10 }), { style: 'Tabela', align: 'center', spacing: [40, 40] }), span }];
     const blocoTopo = () => {
       if (logo) B.push(para(LG(1.9), { style: 'Centro', spacing: [0, 240] }));
-      B.push(cen(`${I.instituicao}${I.sigla ? ' – ' + I.sigla : ''}`, 14, false), cen(I.diretoria, 14, false), cen(I.campus ? 'CAMPUS ' + I.campus : '', 14, false));
+      B.push(cen(`${I.instituicao}${I.sigla ? ' – ' + I.sigla : ''}`, 10.5, false, [0, 60]), cen(I.diretoria, 10.5, false, [0, 60]), cen(I.campus ? 'CAMPUS ' + I.campus : '', 10.5, false, [0, 60]));
     };
     const FORMA = ({ integrada: 'Forma Integrada', concomitante: 'Concomitância Externa', subsequente: 'Subsequente' })[I.forma] || '';
     if (TEMA) {
@@ -2551,7 +2552,7 @@ const STEPS = [
   ['ementas', 'Ementário e programas', ['ementario', 'programas']],
   ['labs', 'Instalações e laboratórios', ['instalacoes', 'labs', 'acervo']],
   ['docentes', 'Corpo docente', ['docentes']],
-  ['validar', 'Validação', null],
+  ['validar', 'Pendências', null],
   ['gerar', 'Gerar documentos', null]
 ];
 const STEPS_C = [
@@ -2562,7 +2563,7 @@ const STEPS_C = [
 ];
 const steps = () => MODE === 'comissao' ? STEPS_C : STEPS;
 function header() {
-  $('#hdrCred').innerHTML = `Desenvolvido por ${h(AUTOR.nome)} · <a href="${h(AUTOR.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`; $('#hdrVer').textContent = 'v' + VERSAO; $('#hdrVer').title = `Versão ${VERSAO} de ${VERSAO_DATA}. Ao receber um link ou arquivo, confira se a versão é a mais recente.`; if (window.PPC_LOGO && !$('#hdrLogo').src) $('#hdrLogo').src = PPC_LOGO.dataURL;
+  $('#hdrCred').innerHTML = `${h(AUTOR.nome)} · <a href="${h(AUTOR.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`; $('#hdrVer').textContent = 'v' + VERSAO; $('#hdrVer').title = `Versão ${VERSAO} de ${VERSAO_DATA}. Ao receber um link ou arquivo, confira se a versão é a mais recente.`; if (window.PPC_LOGO && !$('#hdrLogo').src) $('#hdrLogo').src = PPC_LOGO.dataURL;
   $('#hdrBtns').innerHTML = MODE === 'comissao'
     ? '<button class="ghost" id="bAbrir">Abrir projeto (.json)</button> <button class="ghost" id="bSalvar"' + (P ? '' : ' disabled') + '>Salvar análise (.json)</button> <button class="ghost" id="bModo">Área do proponente</button>'
     : [['bNovo', 'Novo', 'Começar um PPC em branco ou a partir do modelo', IC.novo], ['bAbrir', 'Abrir projeto', 'Abre um projeto salvo anteriormente no seu computador', IC.abrir], ['bSalvar', 'Salvar projeto', 'Guarda o projeto num arquivo no seu computador, para continuar depois ou enviar a um colega', IC.salvar], ['bImportar', 'Importar PPC', 'Ler um PPC pronto em PDF ou Word e preencher o gerador', IC.importar], ['bShare', 'Compartilhar', 'Copiar o link do gerador para enviar a colegas', IC.share]].map(([id, t, tt, ic]) => `<button class="tb${id === 'bNovo' ? ' pri' : ''}" id="${id}" title="${tt}">${ic}<span>${t}</span></button>`).join('');
@@ -2610,7 +2611,7 @@ function renderNav() {
       b = e ? `<span class="b e" data-first="${k}" title="Ir para a primeira pendência">${e}</span>` : w ? `<span class="b w" data-first="${k}" title="Ir para o primeiro aviso">${w}</span>` : '<span class="b o">✓</span>';
     }
     return `<a data-step="${k}" class="${step === k ? 'on' : ''}"><span class="n">${IC[k] || i + 1}</span><span class="nt">${nome}</span>${b}</a>`;
-  }).join('') + `<div class="ngrp">Recursos</div><a data-prev="1"><span class="n">${IC.prev}</span><span class="nt">Prévia do PPC</span></a><a data-step="normas" class="${step === 'normas' ? 'on' : ''}"><span class="n">${IC.normas}</span><span class="nt">Normas e documentos</span></a><a data-step="biblioteca" class="${step === 'biblioteca' ? 'on' : ''}"><span class="n">${IC.bib}</span><span class="nt">Biblioteca de PPCs</span></a><a data-ori=""><span class="n">${IC.ori}</span><span class="nt">Orientações para elaboração</span></a>` +
+  }).join('') + `<div class="ngrp">Recursos</div><a data-prev="1"><span class="n">${IC.prev}</span><span class="nt">Prévia do PPC</span></a><a data-step="normas" class="${step === 'normas' ? 'on' : ''}"><span class="n">${IC.normas}</span><span class="nt">Normas e documentos</span></a><a data-step="biblioteca" class="${step === 'biblioteca' ? 'on' : ''}"><span class="n">${IC.bib}</span><span class="nt">Biblioteca de PPCs</span></a><a data-step="sobre" class="${step === 'sobre' ? 'on' : ''}"><span class="n">${IC.ori}</span><span class="nt">Orientações</span></a>` +
     `<div class="note">O rascunho fica salvo neste navegador. Use <b>Salvar projeto</b> para guardar um arquivo e continuar depois ou enviar a um colega. Clique no número vermelho de uma etapa para ir à primeira pendência.</div>` + creditosHTML();
 }
 function go(k) { step = k; render(); window.scrollTo(0, 0); }
@@ -2697,10 +2698,10 @@ function abrirOrientacoes(anc) {
 // ---------- renderização ----------
 function render() {
   header();
-  if (!['biblioteca', 'normas'].includes(step) && !steps().some(x => x[0] === step)) step = steps()[0][0];
+  if (!['biblioteca', 'normas', 'sobre'].includes(step) && !steps().some(x => x[0] === step)) step = steps()[0][0];
   renderNav();
   if (MODE === 'comissao' && !P) { $('#main').innerHTML = vComissaoVazio(); revalidate(); return; }
-  const f = { ident: vIdent, textos: vTextos, matriz: vMatriz, ementas: vEmentas, labs: vLabs, docentes: vDocentes, validar: vValidar, gerar: vGerar, biblioteca: vBiblioteca, normas: vNormas,
+  const f = { ident: vIdent, textos: vTextos, matriz: vMatriz, ementas: vEmentas, labs: vLabs, docentes: vDocentes, validar: vValidar, gerar: vGerar, biblioteca: vBiblioteca, normas: vNormas, sobre: vSobre,
     c_projeto: vCProjeto, c_verif: () => vValidar(true), c_comparar: vCComparar, c_parecer: vCParecer }[step];
   ISS = PPC.validar(P);
   $('#main').innerHTML = (RASCUNHO ? `<div class="rasc"><span>Há um rascunho salvo neste navegador${RASCUNHO.id.denominacao ? ': <b>' + h(RASCUNHO.id.denominacao) + '</b>' : ''}${RASCUNHO.meta && RASCUNHO.meta.atualizado ? ' (' + new Date(RASCUNHO.meta.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) + ')' : ''}.</span><button class="sm" data-rasc="abrir">Continuar rascunho</button><button class="sm ghost" data-rasc="descartar">Descartar</button></div>` : '') + f();
@@ -3016,7 +3017,7 @@ function vValidar(ro) {
     const f0 = r.issues.find(x => x.sev === 'erro') || r.issues[0];
     return `<div class="card"><div class="row"><h3 style="flex:1">${ro ? h(r.nome) : `<a href="#" data-goiss="${ISS.indexOf(f0)}">${h(r.nome)}</a>`}</h3>${ro ? '' : `<button class="sm" data-gosec="${r.k}">Abrir tela</button>`}</div>${blocos}</div>`;
   }).join('');
-  return `<h2>${ro ? 'Verificação automática' : 'Validação'}</h2><p class="lead">Conferência automática contra as Orientações para elaboração de PPC da EPTNM (2026), a Res. CEPE nº 15/2022, o Quadro 1 e o check list de análise. <b>Pendências</b> (●) impedem a conformidade; <b>avisos</b> (▲) pedem verificação humana.${ro ? '' : ' Clique em um item para ir direto ao campo correspondente.'}</p>
+  return `<h2>${ro ? 'Verificação automática' : 'Pendências'}</h2><p class="lead">Conferência automática contra as Orientações para elaboração de PPC da EPTNM (2026), a Res. CEPE nº 15/2022, o Quadro 1 e o check list de análise. <b>Pendências</b> (●) impedem a conformidade; <b>avisos</b> (▲) pedem verificação humana.${ro ? '' : ' Clique em um item para ir direto ao campo correspondente.'}</p>
   <div class="sum" style="margin-bottom:14px">
     <div class="kpi ${e ? 'bad' : 'good'}"><div class="l">Pendências</div><div class="v">${e}</div></div>
     <div class="kpi"><div class="l">Avisos</div><div class="v">${w}</div></div>
@@ -3033,8 +3034,8 @@ function vGerar() {
   ${e ? `<div class="card" style="border-color:#f3b4ae;background:var(--errbg)"><b style="color:var(--err)">Há ${e} pendência(s).</b> Você pode gerar o arquivo para revisão, mas itens vazios aparecerão marcados como “[não preenchido]”. <a href="#" data-step="validar">Ver pendências</a>.</div>` : '<div class="card" style="border-color:#b7e0c8;background:var(--okbg);color:var(--ok)"><b>Sem pendências.</b> O projeto está pronto para submissão.</div>'}
   <div class="big">
     <div class="card"><h3>PPC completo (.docx)</h3><p>Capa, folha de rosto, sumário automático, ficha, todas as seções, matriz, ementário, programas, laboratórios, acervo e corpo docente. Ao abrir no Word, aceite “atualizar campos” para numerar o sumário.</p><button class="pri" data-act="gDocx">Baixar PPC</button></div>
-    <div class="card"><h3>PPC completo em PDF</h3><p>O documento pronto para enviar ou arquivar, sem precisar do Word. Abre uma prévia; clique em <b>Salvar em PDF</b> e, na janela de impressão, escolha “Salvar como PDF”.</p><div class="row" style="gap:6px"><button class="pri" data-act="gPdf">PDF – padrão institucional</button><button data-act="gPdfM">PDF – novo layout</button></div></div>
-    <div class="card"><h3>PPC completo – novo layout (.docx) <span class="tag">proposta</span></h3><p>O mesmo conteúdo em visual de relatório moderno: capa em bloco azul-escuro com o nome do curso em destaque e indicadores (carga horária, duração, turno, estágio), folha de rosto com faixa lateral, seções numeradas 01, 02…, texto alinhado à esquerda, tabelas só com linhas horizontais e cabeçalho escuro. Proposta para avaliação como novo padrão.</p><button class="pri" data-act="gDocxM">Baixar PPC – novo layout</button></div>
+    <div class="card"><h3>PPC completo em PDF – padrão institucional</h3><p>O documento pronto para enviar ou arquivar, sem precisar do Word. Abre uma prévia; clique em <b>Salvar em PDF</b> e, na janela de impressão, escolha “Salvar como PDF”.</p><button class="pri" data-act="gPdf">Gerar PDF</button></div>
+    <div class="card"><h3>PPC completo – novo layout <span class="tag prop">proposta</span></h3><p>O mesmo conteúdo em visual de relatório moderno: capa em bloco azul-escuro com o nome do curso em destaque e indicadores (carga horária, duração, turno, estágio), folha de rosto com faixa lateral, seções numeradas 01, 02…, tabelas só com linhas horizontais e cabeçalho escuro. <span style="color:#c62828;font-weight:600">Proposta para avaliação como novo padrão.</span></p><div class="row" style="gap:6px"><button class="pri" data-act="gDocxM">Word (.docx)</button><button class="pri" data-act="gPdfM">PDF</button></div></div>
     <div class="card"><h3>Tabelas do PPC (.xlsx)</h3><p>Planilha para conferência com todas as tabelas: ficha, matriz curricular no formato do Quadro ${P.id.forma === 'integrada' ? 1 : 2} (com fórmulas), ementário, programas, laboratórios, instalações, acervo, corpo docente e técnico.</p><button class="pri" data-act="gXlsx">Baixar tabelas</button></div>
   </div>
   <p class="muted" style="margin-top:14px">Guarde também o arquivo do projeto (botão <b>Salvar projeto</b> no topo) para continuar a edição depois ou passá-la a outro colega. Depois de aprovado, cadastre o PDF final na <a href="#" data-step="biblioteca">Biblioteca de PPCs</a>.</p>`;
@@ -3274,7 +3275,7 @@ document.addEventListener('click', ev => {
 let confirmRm = null;
 
 // ---------- versão e ícones ----------
-const VERSAO = '2.5', VERSAO_DATA = '20/11/2026';
+const VERSAO = '2.6', VERSAO_DATA = '20/11/2026';
 const svg = d => `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC = {
   prev: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
@@ -3351,7 +3352,7 @@ async function importarPPC(buf, nome) {
     const iss = PPC.validar(pr), e = iss.filter(i => i.sev === 'erro').length, w = iss.length - e;
     IMPORTADO = pr;
     modal(`<h3>PPC lido: ${h(pr.id.denominacao || nome)}</h3>
-      <p class="muted">Os dados abaixo foram extraídos do arquivo. Confira na Validação: ${e} pendência(s) e ${w} aviso(s) encontrados. Os textos da formação geral seguem o padrão institucional; a matriz lida fica registrada como a matriz vigente para o quadro comparativo da reestruturação.</p>
+      <p class="muted">Os dados abaixo foram extraídos do arquivo. Confira em Pendências: ${e} pendência(s) e ${w} aviso(s) encontrados. Os textos da formação geral seguem o padrão institucional; a matriz lida fica registrada como a matriz vigente para o quadro comparativo da reestruturação.</p>
       <table class="t"><tbody>${relatorio.map(([k, v]) => `<tr><td>${h(k)}</td><td>${h(v)}</td></tr>`).join('')}</tbody></table>
       <p class="muted" style="margin-top:10px">Ao usar, o projeto atual deste navegador é substituído. Se precisar dele, use “Salvar projeto” antes.</p>
       <div class="row" style="margin-top:12px;gap:8px;justify-content:flex-end"><button class="ghost" data-mact="cancelar">Cancelar</button><button data-mact="usar">Usar como base do novo PPC</button></div>`);
@@ -3567,6 +3568,28 @@ const LEIS = [
   ['Lei nº 12.711/2012 – Reserva de vagas', 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12711.htm', 'Requisito de acesso: ingresso nas instituições federais.'],
   ['Lei nº 14.723/2023 – Atualização da Lei de Cotas', 'https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm', 'Altera a Lei nº 12.711/2012.'],
 ];
+const README_MD = "# Gerador de Projeto Pedag\u00f3gico dos Cursos T\u00e9cnicos\n\nEste \u00e9 um gerador de Projeto Pedag\u00f3gico de Curso (PPC) para os cursos t\u00e9cnicos da Educa\u00e7\u00e3o Profissional T\u00e9cnica de N\u00edvel M\u00e9dio (EPTNM) da Universidade Federal de Ci\u00eancia e Inova\u00e7\u00e3o de Minas Gerais (UFCIMG), o antigo CEFET-MG.\n\nA ideia deste gerador \u00e9 que as coordena\u00e7\u00f5es de curso produzam PPCs institucionais padronizados, todos no mesmo formato: as mesmas tabelas, carga hor\u00e1ria dentro das normas, ementas coerentes com os programas e refer\u00eancias em ABNT. O coordenador de curso preenche o conte\u00fado, e o documento sai pronto, no padr\u00e3o institucional.\n\n**Acesse:** https://alexandrefariasbh.github.io/gerador-de-PPC/\n\n## Como funciona\n\nO gerador abre direto no navegador, sem instalar nada e sem login. Funciona no computador, no notebook e no tablet, com Chrome, Edge, Safari ou Firefox.\n\nAo abrir, ele come\u00e7a em branco, s\u00f3 com as disciplinas da forma\u00e7\u00e3o geral j\u00e1 preenchidas, porque elas s\u00e3o padronizadas para todos os cursos. Voc\u00ea segue as etapas do menu lateral:\n\n1. **Identifica\u00e7\u00e3o e capa:** curso, campus, forma de oferta, hist\u00f3rico e comiss\u00e3o proponente.\n2. **Textos do projeto:** apresenta\u00e7\u00e3o, justificativa, objetivos, perfil profissional e as demais se\u00e7\u00f5es.\n3. **Matriz curricular:** as disciplinas da parte espec\u00edfica e a carga hor\u00e1ria de cada uma.\n4. **Ement\u00e1rio e programas:** ementa, objetivos, conte\u00fado, metodologia e bibliografia de cada disciplina.\n5. **Instala\u00e7\u00f5es e laborat\u00f3rios:** ambientes, laborat\u00f3rios com seus equipamentos e acervo bibliogr\u00e1fico.\n6. **Corpo docente:** o professor respons\u00e1vel por cada disciplina e o corpo t\u00e9cnico.\n7. **Pend\u00eancias:** a confer\u00eancia autom\u00e1tica de todo o projeto.\n8. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.\n\nEnquanto voc\u00ea preenche, o gerador confere tudo contra o documento orientador, a Resolu\u00e7\u00e3o CEPE n\u00ba 15/2022 e o check list de an\u00e1lise da comiss\u00e3o. Ele avisa, por exemplo, quando a carga hor\u00e1ria da parte espec\u00edfica n\u00e3o atinge o m\u00ednimo do curso, quando uma s\u00e9rie passa do limite semanal, quando falta uma unidade no programa ou quando uma refer\u00eancia est\u00e1 fora da ABNT. Cada aviso tem um atalho que leva direto ao campo a ser corrigido. Os n\u00fameros vermelhos no menu mostram quantas pend\u00eancias ainda faltam em cada etapa.\n\n## O que o gerador entrega\n\n- **PPC completo em Word (.docx)**, no padr\u00e3o institucional: capa, folha de rosto, sum\u00e1rio, ficha de identifica\u00e7\u00e3o, matriz curricular, ement\u00e1rio, programas, laborat\u00f3rios, acervo e corpo docente.\n- **PPC completo em PDF**, tamb\u00e9m no padr\u00e3o institucional, pronto para enviar ou arquivar.\n- **Novo layout**, uma proposta de visual mais moderno para o mesmo conte\u00fado, em Word ou PDF, para avalia\u00e7\u00e3o como novo padr\u00e3o.\n- **Tabelas em Excel**, para a comiss\u00e3o conferir a matriz e os demais quadros.\n\n## Recursos que ajudam no dia a dia\n\n- **PPC modelo:** em \"Novo\", voc\u00ea pode come\u00e7ar a partir de um PPC completo do Curso T\u00e9cnico em Eletrot\u00e9cnica e adapt\u00e1-lo ao seu curso.\n- **Importar PPC:** l\u00ea um PPC j\u00e1 existente em PDF ou Word e preenche os campos, para criar uma nova vers\u00e3o a partir dele.\n- **Pr\u00e9via do PPC:** mostra o documento sendo montado ao lado do formul\u00e1rio, atualizado enquanto voc\u00ea digita.\n- **Normas e documentos:** re\u00fane as Orienta\u00e7\u00f5es para elabora\u00e7\u00e3o de PPC (que tamb\u00e9m podem ser lidas dentro do gerador), o Quadro 1, o check list, o procedimento de encaminhamento e os links da legisla\u00e7\u00e3o.\n- **Orienta\u00e7\u00f5es:** este texto, com o passo a passo de uso do gerador.\n\n## Onde ficam os dados\n\nTudo o que voc\u00ea digita fica salvo apenas no seu navegador. Nada \u00e9 enviado para servidores. Por isso:\n\n- para continuar em outro computador, ou passar o projeto a um colega, use **Salvar projeto**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir projeto**;\n- se voc\u00ea limpar os dados do navegador, o rascunho se perde, ent\u00e3o salve o projeto com frequ\u00eancia;\n- ao reabrir o gerador, ele come\u00e7a em branco e oferece **Continuar rascunho** caso haja trabalho anterior salvo naquele navegador.\n\n## Vers\u00e3o\n\nA vers\u00e3o aparece no topo da tela, ao lado do t\u00edtulo. Quando o gerador for atualizado, a vers\u00e3o muda. Se algu\u00e9m relatar um problema, vale conferir primeiro se est\u00e1 usando a vers\u00e3o mais recente. Se o navegador continuar mostrando uma vers\u00e3o antiga, recarregue a p\u00e1gina (Ctrl+Shift+R no Windows, Cmd+Shift+R no Mac).\n\n## Arquivos deste reposit\u00f3rio\n\n- **`index.html`**: o gerador completo, em um \u00fanico arquivo. \u00c9 o que o GitHub Pages publica no link acima.\n- **`README.md`**: este texto.\n\nO `index.html` tamb\u00e9m funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.\n\n## Sugest\u00f5es e problemas\n\nSugest\u00f5es, corre\u00e7\u00f5es e relatos de problemas s\u00e3o bem-vindos. Abra uma *issue* aqui no GitHub ou fale diretamente com o autor.\n\n## Autoria\n\nDesenvolvido pelo Prof. Alexandre Rodrigues Farias, do Departamento de Eletr\u00f4nica e Biom\u00e9dica da UFCIMG.\n\nLinkedIn: https://www.linkedin.com/in/alexandre-rodrigues-farias\n";
+function vSobre() {
+  const inl = t => h(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`(.+?)`/g, '<code>$1</code>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const secs = README_MD.split(/\n(?=## )/).filter(x => !/^## Arquivos deste repositório/.test(x));
+  let out = '';
+  secs.forEach((sec, i) => {
+    const ls = sec.split('\n'); let tit = '', html = '', lista = null;
+    const fecha = () => { if (lista) { html += `</${lista}>`; lista = null; } };
+    ls.forEach(l => {
+      if (/^# /.test(l)) return;
+      if (/^## /.test(l)) { tit = l.slice(3); return; }
+      let m;
+      if ((m = l.match(/^\d+\.\s+(.*)/))) { if (lista !== 'ol') { fecha(); html += '<ol>'; lista = 'ol'; } html += `<li>${inl(m[1])}</li>`; }
+      else if ((m = l.match(/^-\s+(.*)/))) { if (lista !== 'ul') { fecha(); html += '<ul>'; lista = 'ul'; } html += `<li>${inl(m[1])}</li>`; }
+      else if (l.trim()) { fecha(); html += `<p>${inl(l)}</p>`; }
+      else fecha();
+    });
+    fecha();
+    out += i === 0 ? `<div class="card sobre">${html}</div>` : `<div class="card sobre"><h3>${h(tit)}</h3>${html}</div>`;
+  });
+  return `<h2>Orientações</h2><p class="lead">Como usar o gerador, passo a passo.</p>${out}`;
+}
 function vNormas() {
   const ext = n => /\.pdf$/i.test(n) ? 'PDF' : 'Word';
   return `<h2>Normas e documentos de consulta</h2><p class="lead">Documentos que orientam a elaboração e a análise do PPC. Os documentos institucionais abrem aqui mesmo; a legislação abre no site oficial.</p>` +
