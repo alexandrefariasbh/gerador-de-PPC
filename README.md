@@ -25,24 +25,24 @@ Enquanto você preenche, o gerador confere tudo contra o documento orientador, a
 
 ## O que o gerador entrega
 
-- **PPC completo em Word (.docx)**, no padrão institucional: capa, folha de rosto, sumário, ficha de identificação, matriz curricular, ementário, programas, laboratórios, acervo e corpo docente.
-- **PPC completo em PDF**, também no padrão institucional, pronto para enviar ou arquivar.
-- **Novo layout**, uma proposta de visual mais moderno para o mesmo conteúdo, em Word ou PDF, para avaliação como novo padrão.
+- **PPC completo**, no padrão institucional, em arquivo PDF ou .docx: capa, folha de rosto, sumário, ficha de identificação, matriz curricular, ementário, programas, laboratórios, acervo e corpo docente.
+- **PPC completo – Novo Layout**, uma proposta de visual mais moderno para o mesmo conteúdo, em arquivo PDF ou .docx, para avaliação como novo padrão.
 - **Tabelas em Excel**, para a comissão conferir a matriz e os demais quadros.
 
 ## Recursos que ajudam no dia a dia
 
-- **PPC modelo:** em "Novo", você pode começar a partir de um PPC completo do Curso Técnico em Eletrotécnica e adaptá-lo ao seu curso.
+- **PPC existente:** em "Novo", você pode começar a partir do PPC do Curso Técnico em Eletrotécnica para se orientar, e editá-lo e adaptá-lo ao seu curso.
 - **Importar PPC:** lê um PPC já existente em PDF ou Word e preenche os campos, para criar uma nova versão a partir dele.
 - **Prévia do PPC:** mostra o documento sendo montado ao lado do formulário, atualizado enquanto você digita.
 - **Normas e documentos:** reúne as Orientações para elaboração de PPC (que também podem ser lidas dentro do gerador), o Quadro 1, o check list, o procedimento de encaminhamento e os links da legislação.
-- **Orientações:** este texto, com o passo a passo de uso do gerador.
+- **Sobre este gerador:** este texto, com o passo a passo de uso do gerador.
+- **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas.
 
 ## Onde ficam os dados
 
 Tudo o que você digita fica salvo apenas no seu navegador. Nada é enviado para servidores. Por isso:
 
-- para continuar em outro computador, ou passar o projeto a um colega, use **Salvar projeto**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir projeto**;
+- para continuar em outro computador, ou passar o projeto a um colega, use **Salvar**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir**;
 - se você limpar os dados do navegador, o rascunho se perde, então salve o projeto com frequência;
 - ao reabrir o gerador, ele começa em branco e oferece **Continuar rascunho** caso haja trabalho anterior salvo naquele navegador.
 
