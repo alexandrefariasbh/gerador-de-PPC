@@ -29,14 +29,26 @@ Enquanto você preenche, o gerador confere tudo contra o documento orientador, a
 - **PPC completo – Novo Layout**, uma proposta de visual mais moderno para o mesmo conteúdo, em arquivo PDF ou .docx, para avaliação como novo padrão.
 - **Tabelas em Excel**, para a comissão conferir a matriz e os demais quadros.
 
-## Recursos que ajudam no dia a dia
+## Reestruturar um PPC a partir do anterior
 
-- **PPC existente:** em "Novo", você pode começar a partir do PPC do Curso Técnico em Eletrotécnica para se orientar, e editá-lo e adaptá-lo ao seu curso.
-- **Importar PPC:** lê um PPC já existente em PDF ou Word e preenche os campos, para criar uma nova versão a partir dele.
+Para reestruturar um curso, você não precisa começar do zero. Clique em **Importar PPC** e escolha o PPC vigente do curso, em PDF ou Word. O gerador lê o documento e aproveita o que já existe: textos do projeto, disciplinas e cargas horárias da matriz, ementas, programas com objetivos, unidades e bibliografias, laboratórios, acervo e corpo docente. Antes de confirmar, ele mostra um resumo do que conseguiu ler.
+
+A partir daí, você edita apenas o que muda na nova versão. A matriz lida fica registrada como **matriz vigente**, e a matriz que você editar passa a ser a **matriz proposta**. No PPC gerado aparecem as duas, seguidas de um **quadro comparativo** com as disciplinas incluídas, excluídas e alteradas, com a carga horária antes e depois. Assim a comissão vê de imediato o que mudou.
+
+O PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) não pode ser lido; nesse caso, use o arquivo do Word ou o PDF gerado a partir dele.
+
+## Novas funcionalidades
+
+- **Importar PPC:** lê um PPC em PDF ou Word, preenche o gerador e permite gerar a versão reestruturada, como descrito acima.
+- **A partir de PPC existente:** em **Novo**, você pode abrir o PPC do Curso Técnico em Eletrotécnica para se orientar, e então editá-lo e adaptá-lo ao seu curso. Ele vem sem nomes de pessoas: docentes, técnicos, proponentes e equipes elaboradoras ficam para você preencher.
+- **PPC completo em PDF:** além do arquivo .docx, o PPC sai em PDF, no padrão institucional, sem precisar do Word.
+- **PPC completo – Novo Layout:** uma proposta de visual mais moderno, com capa em destaque, indicadores do curso e tabelas mais limpas, em PDF ou .docx, para avaliação como novo padrão.
 - **Prévia do PPC:** mostra o documento sendo montado ao lado do formulário, atualizado enquanto você digita.
-- **Normas e documentos:** reúne as Orientações para elaboração de PPC (que também podem ser lidas dentro do gerador), o Quadro 1, o check list, o procedimento de encaminhamento e os links da legislação.
-- **Sobre este gerador:** este texto, com o passo a passo de uso do gerador.
-- **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas.
+- **Pendências:** a conferência automática lista o que falta ou está fora das normas, e cada item leva direto ao campo a ser corrigido.
+- **Ementa da formação geral:** na matriz curricular, ao passar o mouse sobre uma disciplina da formação geral, aparece a ementa dela.
+- **Normas e documentos:** reúne as Orientações para elaboração de PPC (que também podem ser lidas dentro do gerador), o Quadro 1, o check list de análise, o procedimento de encaminhamento e os links da legislação.
+- **Sobre este gerador:** este texto, com o passo a passo de uso.
+- **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas por WhatsApp, e-mail ou outro aplicativo.
 
 ## Onde ficam os dados
 
