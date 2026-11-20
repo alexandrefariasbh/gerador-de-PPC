@@ -8,7 +8,7 @@ A ideia deste gerador é que as coordenações de curso produzam PPCs institucio
 
 ## Como funciona
 
-O gerador abre direto no navegador, sem instalar nada e sem login. Funciona no computador, no notebook e no tablet, com Chrome, Edge, Safari ou Firefox.
+O gerador abre direto no navegador, sem instalar nada e sem login. Funciona no computador, no notebook e no tablet, nas versões atuais do Chrome, Edge, Firefox e Safari (16.4 ou mais recente). O PPC em PDF sai completo, com cabeçalho, rodapé e número de página, no Chrome e no Edge; nos outros navegadores, use o arquivo .docx para ter o documento completo.
 
 Ao abrir, ele começa em branco, só com as disciplinas da formação geral já preenchidas, porque elas são padronizadas para todos os cursos. Você segue as etapas do menu lateral:
 
