@@ -81,7 +81,7 @@ table.t tr.grp td{background:#f2f5f9;font-weight:700;color:var(--acc);font-size:
 .cnt.ok{background:var(--okbg);color:var(--ok)}.cnt.bad{background:var(--errbg);color:var(--err)}
 .flabel{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--mut);margin:12px 0 4px}
 .flabel .sp{flex:1}
-.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:90vw}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:95;max-width:90vw}
 .toast.on{opacity:1}
 .big{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .big .card{display:flex;flex-direction:column;gap:8px;margin:0}
@@ -206,14 +206,43 @@ header .sub{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;max-width:
 header .lcol{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}header .hcred{font-size:9.5px;line-height:1.2;color:#94a3b8;text-align:center;white-space:nowrap}header .hcred a{color:#94a3b8;text-decoration:underline dotted}header .hcred a:hover{color:var(--acc2)}
 .rasc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#e6f6f6;border:1px solid #bfe8e8;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13.5px}.rasc span{flex:1}
 .sobre p{margin:0 0 8px;text-align:justify}.sobre ol,.sobre ul{margin:4px 0 8px;padding-left:22px}.sobre li{margin:3px 0}.sobre code{background:#eef0f3;border-radius:4px;padding:0 4px}
+
+/* ===== cabeçalho institucional ===== */
+header{display:block!important;padding:0!important;background:#fff!important;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(11,31,58,.06);position:sticky;top:0;z-index:50}
+header::before{content:"";display:block;height:4px;background:linear-gradient(90deg,#0b1f3a 0%,#17345c 45%,#0f8f92 100%)}
+header .hrow1{display:grid;grid-template-columns:200px 1fr 200px;align-items:center;gap:18px;padding:14px 24px 12px}
+header .hlogo{display:flex;align-items:center}
+header #hdrLogo{height:44px}
+header .hc{text-align:center;min-width:0}
+header .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--acc2);margin-bottom:5px}
+header h1{display:block!important;margin:0 auto;max-width:860px;font-size:17px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:.045em;text-transform:uppercase;color:#0b1f3a!important}
+header h1::after{content:"";display:block;width:56px;height:3px;border-radius:3px;background:var(--acc2);margin:9px auto 0}
+header .hr{display:flex;justify-content:flex-end;align-items:center}
+header .ver{font-size:11.5px;padding:3px 10px}
+header .hrow2{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:9px 24px;background:#f6f8fb;border-top:1px solid var(--line)}
+header .proj{display:flex;align-items:center;gap:10px;flex:1 1 300px;min-width:0}
+header .plbl{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+header #hdrCurso{font-size:14px;font-weight:700;color:var(--acc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header #hdrStatus{display:flex;gap:6px;flex:none}
+header #hdrBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:0 1 auto!important}
+header button.tb{box-shadow:0 1px 2px rgba(11,31,58,.05)}
+header button.tb:hover{border-color:var(--acc2);color:var(--acc2)}
+header button.tb.pri:hover{color:#fff}
+@media (max-width:1100px){header .hrow1{grid-template-columns:auto 1fr;padding:12px 16px}header .hr{display:none}header h1{font-size:14.5px!important}header .hrow2{padding:8px 16px}}
+@media (max-width:700px){header .hrow1{grid-template-columns:1fr}header .hlogo{justify-content:center}}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><div class="lcol"><img id="hdrLogo" alt="UFCIMG"><span class="hcred" id="hdrCred"></span></div><span class="bsep"></span><div><h1><span id="hdrTitulo">Gerador de Projeto Pedagógico para os Cursos Técnicos da Educação Profissional Técnica de Nível Médio da UFCIMG</span> <span class="ver" id="hdrVer" title="Versão do gerador: confira se é a mais recente"></span></h1><div class="sub"><span id="hdrCurso">Projeto sem nome</span></div></div></div>
-  <div class="sp"></div>
-  <span id="hdrStatus"></span>
-  <span id="hdrBtns"></span>
+  <div class="hrow1">
+    <div class="hlogo"><div class="lcol"><img id="hdrLogo" alt="UFCIMG"><span class="hcred" id="hdrCred"></span></div></div>
+    <div class="hc"><div class="eyebrow">Diretoria de Educação Profissional e Tecnológica</div><h1 id="hdrTitulo">Gerador de Projeto Pedagógico para os Cursos Técnicos da Educação Profissional Técnica de Nível Médio da UFCIMG</h1></div>
+    <div class="hr"><span class="ver" id="hdrVer" title="Versão do gerador: confira se é a mais recente"></span></div>
+  </div>
+  <div class="hrow2">
+    <div class="proj"><span class="plbl">Projeto</span><span id="hdrCurso">Projeto sem nome</span><span id="hdrStatus"></span></div>
+    <span id="hdrBtns"></span>
+  </div>
   <input type="file" id="fImportar" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
   <input type="file" id="fBibPdf" accept=".pdf,application/pdf" hidden>
   <input type="file" id="fAbrir" accept=".json,application/json" hidden>
