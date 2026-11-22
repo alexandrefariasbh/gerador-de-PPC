@@ -3487,7 +3487,7 @@ document.addEventListener('click', ev => {
 let confirmRm = null;
 
 // ---------- versão e ícones ----------
-const VERSAO = '3.4', VERSAO_DATA = '22/11/2026';
+const VERSAO = '3.4.1', VERSAO_DATA = '22/11/2026';
 const svg = d => `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC = {
   prev: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
@@ -3548,7 +3548,7 @@ async function carregaPdfjs() {
   }
   return (PDFJS = mod);
 }
-let IMPORTADO = null;
+let IMPORTADO = null, IMPORTADO_EXT = '';
 async function importarPPC(buf, nome) {
   IMP = IMP || criarImportador(PPC);
   const ext = (String(nome).match(/\.(\w+)$/) || [])[1]?.toLowerCase();
@@ -3567,7 +3567,7 @@ async function importarPPC(buf, nome) {
     const { projeto, relatorio } = IMP.importar(linhas);
     const pr = migrate(projeto);
     const iss = PPC.validar(pr), e = iss.filter(i => i.sev === 'erro').length, w = iss.length - e;
-    IMPORTADO = pr;
+    IMPORTADO = pr; IMPORTADO_EXT = isPdf ? 'pdf' : 'docx';
     modal(`<h3>PPC lido: ${h(pr.id.denominacao || nome)}</h3>
       <p class="muted">Os dados abaixo foram extraídos do arquivo. Confira em Pendências: ${e} pendência(s) e ${w} aviso(s) encontrados. Os textos da formação geral seguem o padrão institucional; a matriz lida fica registrada como a matriz vigente para o quadro comparativo da reestruturação.</p>
       <table class="t"><tbody>${relatorio.map(([k, v]) => `<tr><td>${h(k)}</td><td>${h(v)}</td></tr>`).join('')}</tbody></table>
@@ -3583,7 +3583,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-mact]'); if (!b) return;
   if (b.dataset.mact === 'usar' && IMPORTADO) {
     P = IMPORTADO; IMPORTADO = null; P.id.tipo = 'reestruturacao'; selDisc = null; compararCom = null; modal(''); touch(true); go('validar');
-    stat('acao/importou-' + (ext || 'arquivo'), 'Importou PPC (' + (ext || '?') + ')');
+    stat('acao/importou-' + (IMPORTADO_EXT || 'arquivo'), 'Importou PPC (' + (IMPORTADO_EXT || '?') + ')');
     toast('PPC importado. Revise as pendências: clique em cada item para ir ao campo.');
   } else { IMPORTADO = null; modal(''); }
 });
