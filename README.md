@@ -54,11 +54,15 @@ O PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) não pode ser li
 
 ## Onde ficam os dados
 
-Tudo o que você digita fica salvo apenas no seu navegador. Nada é enviado para servidores. Por isso:
+Tudo o que você digita fica salvo apenas no seu navegador. O conteúdo do PPC nunca é enviado para servidores. Por isso:
 
 - para continuar em outro computador, ou passar o projeto a um colega, use **Salvar**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir**;
 - se você limpar os dados do navegador, o rascunho se perde, então salve o projeto com frequência;
 - ao reabrir o gerador, ele começa em branco e oferece **Continuar rascunho** caso haja trabalho anterior salvo naquele navegador.
+
+## Estatísticas de uso
+
+Na versão publicada no GitHub Pages, o gerador conta acessos de forma anônima com o [GoatCounter](https://www.goatcounter.com), que não usa cookies e não identifica pessoas. São registrados apenas o número de visitas, as etapas abertas e ações como “gerou PPC em PDF”, “importou PPC” ou “baixou o tutorial”. Nenhum texto, nome ou dado do PPC é enviado. A cópia do `index.html` aberta no próprio computador não conta nada.
 
 ## Versão
 
@@ -69,6 +73,7 @@ A versão aparece no topo da tela, ao lado do título. Quando o gerador for atua
 - **`index.html`**: o gerador completo, em um único arquivo. É o que o GitHub Pages publica no link acima.
 - **`README.md`**: este texto.
 - **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial em PDF, baixado pelo botão do gerador.
+- **`goatcounter.txt`**: o código do contador de acessos (GoatCounter). Apague o arquivo para desligar a contagem.
 
 O `index.html` também funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.
 
