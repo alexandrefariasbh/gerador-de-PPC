@@ -15,11 +15,12 @@ Ao abrir, ele começa em branco, só com as disciplinas da formação geral já 
 1. **Identificação e capa:** curso, campus, forma de oferta, histórico e comissão proponente.
 2. **Textos do projeto:** apresentação, justificativa, objetivos, perfil profissional e as demais seções.
 3. **Matriz curricular:** as disciplinas da parte específica e a carga horária de cada uma.
-4. **Ementário e programas:** ementa, objetivos, conteúdo, metodologia e bibliografia de cada disciplina.
-5. **Instalações e laboratórios:** ambientes, laboratórios com seus equipamentos e acervo bibliográfico.
-6. **Corpo docente:** o professor responsável por cada disciplina e o corpo técnico.
-7. **Pendências:** a conferência automática de todo o projeto.
-8. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.
+4. **Matriz por ano:** a matriz em cartões coloridos, série a série, para visualizar o curso e remanejar disciplinas.
+5. **Ementário e programas:** ementa, objetivos, conteúdo, metodologia e bibliografia de cada disciplina.
+6. **Instalações e laboratórios:** ambientes, laboratórios com seus equipamentos e acervo bibliográfico.
+7. **Corpo docente:** o professor responsável por cada disciplina e o corpo técnico.
+8. **Pendências:** a conferência automática de todo o projeto.
+9. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.
 
 Enquanto você preenche, o gerador confere tudo contra o documento orientador, a Resolução CEPE nº 15/2022 e o check list de análise da comissão. Ele avisa, por exemplo, quando a carga horária da parte específica não atinge o mínimo do curso, quando uma série passa do limite semanal, quando falta uma unidade no programa ou quando uma referência está fora da ABNT. Cada aviso tem um atalho que leva direto ao campo a ser corrigido. Os números vermelhos no menu mostram quantas pendências ainda faltam em cada etapa.
 
@@ -43,6 +44,7 @@ O PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) não pode ser li
 - **A partir de PPC existente:** em **Novo**, você pode abrir o PPC do Curso Técnico em Eletrotécnica para se orientar, e então editá-lo e adaptá-lo ao seu curso. Ele vem sem nomes de pessoas: docentes, técnicos, proponentes e equipes elaboradoras ficam para você preencher.
 - **PPC completo em PDF:** além do arquivo .docx, o PPC sai em PDF, no padrão institucional, sem precisar do Word.
 - **PPC completo – Novo Layout:** uma proposta de visual mais moderno, com capa em destaque, indicadores do curso e tabelas mais limpas, em PDF ou .docx, para avaliação como novo padrão.
+- **Matriz por ano:** mostra as disciplinas em cartões coloridos por núcleo e área, uma coluna por série, com a carga horária semanal e anual de cada uma. As disciplinas da parte específica podem ser arrastadas de uma série para outra, e o gerador recalcula as cargas e aponta conflitos de pré-requisito. A matriz pode ser impressa ou salva em PDF.
 - **Prévia do PPC:** mostra o documento sendo montado ao lado do formulário, atualizado enquanto você digita.
 - **Pendências:** a conferência automática lista o que falta ou está fora das normas, e cada item leva direto ao campo a ser corrigido.
 - **Ementa da formação geral:** na matriz curricular, ao passar o mouse sobre uma disciplina da formação geral, aparece a ementa dela.
@@ -66,6 +68,7 @@ A versão aparece no topo da tela, ao lado do título. Quando o gerador for atua
 
 - **`index.html`**: o gerador completo, em um único arquivo. É o que o GitHub Pages publica no link acima.
 - **`README.md`**: este texto.
+- **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial em PDF, baixado pelo botão do gerador.
 
 O `index.html` também funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.
 
