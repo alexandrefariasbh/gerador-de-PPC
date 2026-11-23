@@ -65,16 +65,19 @@ As alterações são gravadas campo a campo; no mesmo campo, vale a última. **S
 
 A edição em equipe usa o mesmo projeto do Firebase (`gerador-ppc-ufcimg`) do gerador da graduação, com as mesmas regras. Nada precisa ser alterado no Firebase: basta publicar neste repositório o mesmo arquivo `colab.json` usado no repositório da graduação. Cada PPC compartilhado fica marcado com o gerador em que foi criado, e cada gerador só lista e abre os seus.
 
-## Área da Câmara de Ensino (análise de PPC)
+## Área da Câmara de Ensino (Gerador de Parecer)
 
 Módulo restrito aos relatores da Câmara de Ensino, para analisar os PPCs recebidos e emitir o relatório de análise.
 
 - **Quem acessa:** só quem entra com a conta Google e está cadastrado como relator. Para os demais professores o botão **Câmara** não aparece, e as análises guardadas na nuvem não são legíveis.
-- **O que o relator abre:** o arquivo `.json` do gerador, um PPC em **PDF ou Word** (para os cursos que não usaram o gerador), o projeto que está aberto na sua área de professor, ou um **parecer em branco**, para PPC digitalizado ou em formato que o gerador não consegue ler.
+- **Abre sempre limpa:** ao entrar na Câmara não há nenhum parecer carregado. O relator importa o PPC recebido (**PDF**, **Word** ou `.json`), abre uma análise do painel, retoma a que estava neste navegador ou começa um **parecer em branco**.
+- **Leitura do PPC:** com o projeto aberto, o menu ganha o grupo *Ler o PPC em análise*, com todas as etapas do gerador, e cada pendência da conferência leva direto ao campo correspondente.
 - **O parecer:** o gerador confere o PPC contra as normas e monta o parecer no modelo da Câmara — identificação, histórico, análise do mérito em quadro único (Item, Observação, Situação e Item a alterar) e voto da comissão. Na coluna *Situação* fica o que foi encontrado e o que deve ser feito; em *Item a alterar*, o ponto do PPC a corrigir.
 - **Tudo é editável, item a item:** cada bloco, cada linha do quadro e cada apontamento tem uma caixa de seleção que o inclui ou não no documento, sem apagá-lo. Textos podem ser reescritos, linhas e grupos podem ser criados, removidos e reordenados, e a situação de cada linha pode ser trocada à mão. O botão *Atualizar com a verificação* roda a conferência de novo sem apagar o que o relator escreveu.
 - **Relatores:** o parecer aceita mais de um relator; a lista permite incluir, alterar e excluir, e traz os relatores já cadastrados na Câmara.
+- **Comparação de versões:** na reanálise, a versão anterior pode vir em `.json`, PDF ou Word; as diferenças viram itens editáveis do parecer.
 - **Saídas:** parecer em PDF e em Word (.docx), arquivo `.json` com o PPC e a análise juntos, e envio ao **painel da Câmara**, onde os relatores acompanham os PPCs em análise.
+- **Tutorial próprio:** dentro da área, em *Recursos → Tutorial*, e em PDF (`Tutorial-Gerador-Parecer.pdf`).
 
 ### Como cadastrar os relatores (feito por quem administra o gerador)
 
@@ -114,7 +117,8 @@ A versão aparece no topo da tela, ao lado do título. Quando o gerador for atua
 
 - **`index.html`**: o gerador completo, em um único arquivo. É o que o GitHub Pages publica no link acima.
 - **`README.md`**: este texto.
-- **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial em PDF, baixado pelo botão do gerador.
+- **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial do gerador de PPC, baixado pelo botão do gerador.
+- **`Tutorial-Gerador-Parecer.pdf`**: o tutorial da área da Câmara de Ensino.
 - **`firebase-regras.json`**: as regras de acesso do Firebase (as mesmas do repositório da graduação, já com a área da Câmara).
 - **`goatcounter.txt`**: o código do contador de acessos (GoatCounter). Apague o arquivo para desligar a contagem.
 - **`colab.json`**: a configuração da edição em equipe (o mesmo arquivo do repositório da graduação). Sem ele, o gerador funciona normalmente, só que sem a edição em equipe e sem pedir login.
