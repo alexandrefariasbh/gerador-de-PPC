@@ -71,7 +71,8 @@ Módulo restrito aos relatores da Câmara de Ensino, para analisar os PPCs receb
 
 - **Quem acessa:** só quem entra com a conta Google e está cadastrado como relator. Para os demais professores o botão **Câmara** não aparece, e as análises guardadas na nuvem não são legíveis.
 - **O que o relator abre:** o arquivo `.json` do gerador, um PPC em **PDF ou Word** (para os cursos que não usaram o gerador) ou o projeto que está aberto na sua área de professor.
-- **O relatório:** o gerador confere o PPC contra as normas e monta um relatório no formato de parecer — identificação, histórico, normas consideradas, análise item a item, síntese e conclusão com o voto. **Tudo é editável**: cada item pode ser reescrito, removido, reordenado ou criado à mão, cada seção pode mudar de situação, ser renomeada, ficar fora do relatório ou ser acrescentada. O botão *Atualizar com a verificação* roda a conferência de novo sem apagar o que o relator escreveu.
+- **O parecer:** o gerador confere o PPC contra as normas e monta o parecer no modelo da Câmara — identificação, histórico, análise do mérito em quadro único (Item, Observação, Situação e Item a alterar) e voto da comissão. Na coluna *Situação* fica o que foi encontrado e o que deve ser feito; em *Item a alterar*, o ponto do PPC a corrigir.
+- **Tudo é editável, item a item:** cada bloco, cada linha do quadro e cada apontamento tem uma caixa de seleção que o inclui ou não no documento, sem apagá-lo. Textos podem ser reescritos, linhas e grupos podem ser criados, removidos e reordenados, e a situação de cada linha pode ser trocada à mão. O botão *Atualizar com a verificação* roda a conferência de novo sem apagar o que o relator escreveu.
 - **Saídas:** relatório em PDF e em Word (.docx), arquivo `.json` com o PPC e a análise juntos, e envio ao **painel da Câmara**, onde os relatores acompanham os PPCs em análise.
 
 ### Como cadastrar os relatores (feito por quem administra o gerador)
