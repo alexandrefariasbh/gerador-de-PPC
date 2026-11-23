@@ -52,9 +52,45 @@ O PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) não pode ser li
 - **Sobre este gerador:** este texto, com o passo a passo de uso.
 - **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas por WhatsApp, e-mail ou outro aplicativo.
 
+## Trabalho em equipe (edição simultânea)
+
+Vários professores podem trabalhar no mesmo PPC ao mesmo tempo. Cada alteração aparece para os outros em poucos segundos.
+
+1. Ao abrir o gerador, entre com a sua **conta Google pessoal** (Gmail). O gerador recebe só o nome e o e-mail.
+2. Com o PPC aberto, clique em **Equipe → Compartilhar este PPC**. Ele passa a ficar guardado na nuvem.
+3. Em **Equipe**, copie o **link do PPC** e envie aos colegas. Quem abre o link e entra com a conta Google passa a fazer parte da equipe e já cai no PPC.
+4. Em **Equipe**, você vê quem participa e quem está on-line, e pode **remover** alguém (a pessoa perde o acesso, mesmo tendo o link). No cabeçalho aparecem as iniciais de quem está on-line; no menu lateral e no ementário, as iniciais mostram onde cada pessoa está editando.
+
+As alterações são gravadas campo a campo; no mesmo campo, vale a última. **Salvar** continua funcionando e é uma boa cópia de segurança. A cópia do `index.html` aberta direto no computador funciona sem login (e sem a edição em equipe).
+
+A edição em equipe usa o mesmo projeto do Firebase (`gerador-ppc-ufcimg`) do gerador da graduação, com as mesmas regras. Nada precisa ser alterado no Firebase: basta publicar neste repositório o mesmo arquivo `colab.json` usado no repositório da graduação. Cada PPC compartilhado fica marcado com o gerador em que foi criado, e cada gerador só lista e abre os seus.
+
+## Área da Câmara de Ensino (análise de PPC)
+
+Módulo restrito aos relatores da Câmara de Ensino, para analisar os PPCs recebidos e emitir o relatório de análise.
+
+- **Quem acessa:** só quem entra com a conta Google e está cadastrado como relator. Para os demais professores o botão **Câmara** não aparece, e as análises guardadas na nuvem não são legíveis.
+- **O que o relator abre:** o arquivo `.json` do gerador, um PPC em **PDF ou Word** (para os cursos que não usaram o gerador) ou o projeto que está aberto na sua área de professor.
+- **O relatório:** o gerador confere o PPC contra as normas e monta um relatório no formato de parecer — identificação, histórico, normas consideradas, análise item a item, síntese e conclusão com o voto. **Tudo é editável**: cada item pode ser reescrito, removido, reordenado ou criado à mão, cada seção pode mudar de situação, ser renomeada, ficar fora do relatório ou ser acrescentada. O botão *Atualizar com a verificação* roda a conferência de novo sem apagar o que o relator escreveu.
+- **Saídas:** relatório em PDF e em Word (.docx), arquivo `.json` com o PPC e a análise juntos, e envio ao **painel da Câmara**, onde os relatores acompanham os PPCs em análise.
+
+### Como cadastrar os relatores (feito por quem administra o gerador)
+
+No Firebase, em **Realtime Database → Dados**, crie o nó `relatores` e, dentro dele, uma chave por relator: o e-mail com os pontos trocados por vírgulas. Exemplo:
+
+```
+relatores
+  └─ fulano,sobrenome@gmail,com
+       └─ nome: "Prof. Fulano de Tal"
+```
+
+O e-mail é o da conta Google com que a pessoa entra no gerador. Para tirar o acesso, apague a chave. As regras do arquivo `firebase-regras.json` (republique-as após esta atualização) garantem que só esses e-mails leiam e gravem as análises; cada relator consegue consultar apenas o próprio cadastro.
+
+O código do módulo está no `index.html`, que é público — o que fica protegido são os dados: os PPCs e as análises enviados à nuvem. Um PPC que o relator abre do próprio computador nunca sai dali, a não ser que ele envie para o painel.
+
 ## Onde ficam os dados
 
-Tudo o que você digita fica salvo apenas no seu navegador. O conteúdo do PPC nunca é enviado para servidores. Por isso:
+Tudo o que você digita fica salvo apenas no seu navegador. Nada é enviado para servidores, a não ser os PPCs que você compartilhar em **Equipe**, que ficam no Firebase com acesso restrito à equipe de cada PPC. Por isso:
 
 - para continuar em outro computador, ou passar o projeto a um colega, use **Salvar**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir**;
 - se você limpar os dados do navegador, o rascunho se perde, então salve o projeto com frequência;
@@ -63,6 +99,10 @@ Tudo o que você digita fica salvo apenas no seu navegador. O conteúdo do PPC n
 ## Estatísticas de uso
 
 Na versão publicada no GitHub Pages, o gerador conta acessos de forma anônima com o [GoatCounter](https://www.goatcounter.com), que não usa cookies e não identifica pessoas. São registrados apenas o número de visitas, as etapas abertas e ações como “gerou PPC em PDF”, “importou PPC” ou “baixou o tutorial”. Nenhum texto, nome ou dado do PPC é enviado. A cópia do `index.html` aberta no próprio computador não conta nada.
+
+## No celular
+
+O gerador funciona também no celular e no tablet. Em telas pequenas, o menu de etapas fica no botão ☰, no alto à esquerda, e os formulários passam para uma coluna. As tabelas largas e a matriz rolam para o lado com o dedo. Como arrastar cartões não funciona bem na tela de toque, use as setas ◀ ▶ (técnico) ou, na graduação, toque no cartão e escolha o período no painel. Para textos longos e para gerar o PPC final, o computador continua sendo mais confortável.
 
 ## Versão
 
@@ -73,7 +113,9 @@ A versão aparece no topo da tela, ao lado do título. Quando o gerador for atua
 - **`index.html`**: o gerador completo, em um único arquivo. É o que o GitHub Pages publica no link acima.
 - **`README.md`**: este texto.
 - **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial em PDF, baixado pelo botão do gerador.
+- **`firebase-regras.json`**: as regras de acesso do Firebase (as mesmas do repositório da graduação, já com a área da Câmara).
 - **`goatcounter.txt`**: o código do contador de acessos (GoatCounter). Apague o arquivo para desligar a contagem.
+- **`colab.json`**: a configuração da edição em equipe (o mesmo arquivo do repositório da graduação). Sem ele, o gerador funciona normalmente, só que sem a edição em equipe e sem pedir login.
 
 O `index.html` também funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.
 
