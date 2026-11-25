@@ -2715,6 +2715,111 @@ html,body{height:auto!important;min-height:100%}
       });
       html += paginas.map((cont, i) => cont.length || ctxs[i].ancoras.length ? `<section class="pg ${nome}">${ctxs[i].ancoras.join('')}<div class="ct">${cont.join('')}</div></section>` : '').join('');
     });
+
+// ---- paginação na tela: cada .pg passa a ter a altura de uma folha ----
+const PAGINADOR = '<' + 'script>' + `(function(){
+function med(el){var r=el.getBoundingClientRect();return {el:el,top:r.top,bot:r.bottom,h:r.height};}
+function cadeia(pg){ var c=[pg], a=pg;
+  while(a.children.length===1 && a.firstElementChild.tagName!=='TABLE' && a.firstElementChild.children.length>0){ a=a.firstElementChild; c.push(a); }
+  return c; }
+function clonaCadeia(c){ var topo=null, pai=null;
+  for(var i=0;i<c.length;i++){ var n=c[i].cloneNode(false); n.removeAttribute('id'); if(pai)pai.appendChild(n); else topo=n; pai=n; }
+  return {topo:topo, fundo:pai}; }
+function fatias(itens,lim1,lim,ini){
+  var corte=[0], atual=lim1;
+  for(var i=0;i<itens.length;i++){
+    if(itens[i].bot-ini>atual-2 && itens[i].top-ini>1){ corte.push(i); ini=itens[i].top; atual=lim; }
+  }
+  return corte;
+}
+function novaTabela(tb,cg,cab,semId){
+  var nova=tb.cloneNode(false); nova.removeAttribute('id');
+  if(cg)nova.appendChild(cg.cloneNode(true));
+  if(cab){ var ch=cab.cloneNode(true);
+    if(semId)[].slice.call(ch.querySelectorAll('[id]')).forEach(function(x){x.removeAttribute('id');x.classList.remove('cmt-hl');});
+    nova.appendChild(ch); }
+  return nova;
+}
+function divideTabela(tb,util,primeiro){
+  var cg=tb.querySelector(':scope>colgroup'), cab=tb.querySelector(':scope>thead');
+  var hc=cab?cab.getBoundingClientRect().height:0;
+  var linhas=[].slice.call(tb.querySelectorAll(':scope>tbody>tr'));
+  var pai=tb.parentNode, ref=tb.nextSibling;
+  if(linhas.length>1){
+    var m=linhas.map(med), corte=fatias(m,(primeiro||util)-hc,util-hc,m[0].top);
+    if(corte.length<2)return false;
+    for(var c=0;c<corte.length;c++){
+      var nova=novaTabela(tb,cg,cab,c>0), tbody=document.createElement('tbody'); nova.appendChild(tbody);
+      var fim=(c+1<corte.length)?corte[c+1]:linhas.length;
+      for(var j=corte[c];j<fim;j++)tbody.appendChild(linhas[j]);
+      pai.insertBefore(nova,ref);
+    }
+    pai.removeChild(tb); return true;
+  }
+  // quadro de uma linha só (programa da disciplina): divide o conteúdo da célula
+  var tr=linhas[0]; if(!tr)return false;
+  var tds=[].slice.call(tr.children); if(tds.length!==1)return false;
+  var td=tds[0], blocos=[].slice.call(td.children); if(blocos.length<2)return false;
+  var mb=blocos.map(med), ct=fatias(mb,(primeiro||util)-hc,util-hc,mb[0].top);
+  if(ct.length<2)return false;
+  for(var c2=0;c2<ct.length;c2++){
+    var nt=novaTabela(tb,cg,cab,c2>0), tb2=document.createElement('tbody');
+    var tr2=tr.cloneNode(false); tr2.removeAttribute('id');
+    var td2=td.cloneNode(false); td2.removeAttribute('id');
+    var fim2=(c2+1<ct.length)?ct[c2+1]:blocos.length;
+    for(var j2=ct[c2];j2<fim2;j2++)td2.appendChild(blocos[j2]);
+    tr2.appendChild(td2); tb2.appendChild(tr2); nt.appendChild(tb2);
+    pai.insertBefore(nt,ref);
+  }
+  pai.removeChild(tb); return true;
+}
+function quebra(pg,util){
+  var c=cadeia(pg), cont=c[c.length-1];
+  // 1. quadros que não cabem no que resta da folha são divididos
+  var filhos=[].slice.call(cont.children), i=0, ini=null, giros=0;
+  while(i<filhos.length && giros<4000){
+    giros++;
+    var r=filhos[i].getBoundingClientRect();
+    if(ini===null)ini=r.top;
+    if(r.bottom-ini>util+1){
+      var resto=util-(r.top-ini);
+      if(filhos[i].tagName==='TABLE' && r.height>resto-1 && resto>70 && divideTabela(filhos[i],util,resto)){
+        filhos=[].slice.call(cont.children); continue;
+      }
+      ini=(r.top-ini>1)?r.top:(r.bottom-util);
+    }
+    i++;
+  }
+  // 2. cortes de página
+  filhos=[].slice.call(cont.children); if(filhos.length<2)return;
+  var m2=filhos.map(med), p0=m2[0].top, corte2=[];
+  for(var k=0;k<m2.length;k++){ if(m2[k].bot-p0>util+1 && m2[k].top-p0>1){ corte2.push(k); p0=m2[k].top; } }
+  if(!corte2.length)return;
+  var ref2=pg.nextSibling, pai2=pg.parentNode;
+  for(var z=corte2.length-1;z>=0;z--){
+    var cl=clonaCadeia(c), mover=filhos.slice(corte2[z]);
+    for(var j3=0;j3<mover.length;j3++)cl.fundo.appendChild(mover[j3]);
+    pai2.insertBefore(cl.topo,ref2); ref2=cl.topo; filhos=filhos.slice(0,corte2[z]);
+  }
+}
+function paginar(){
+  try{
+    var pgs=[].slice.call(document.querySelectorAll('.pg'));
+    for(var k=0;k<pgs.length;k++){
+      var pg=pgs[k]; if(pg.classList.contains('vazio'))continue;
+      var cs=getComputedStyle(pg), pt=parseFloat(cs.paddingTop)||0, pb=parseFloat(cs.paddingBottom)||0;
+      var larg=pg.getBoundingClientRect().width;
+      var H=larg*(pg.classList.contains('pai')?(210/297):(297/210));
+      var util=H-pt-pb; if(util<120)continue;
+      if(pg.scrollHeight<=H+2)continue;
+      quebra(pg,util);
+    }
+    document.documentElement.setAttribute('data-paginado','1');
+  }catch(e){ document.documentElement.setAttribute('data-paginado','erro'); }
+}
+if(document.readyState==='complete')paginar();else addEventListener('load',paginar);
+})();` + '<' + '/script>';
+
     const doc2 = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(opc.titulo || 'PPC')}</title><style>
 ${pageCss}
 html,body{margin:0;padding:0}
@@ -2738,7 +2843,7 @@ ${css}
 @media screen{body{background:#e8ecf1}.pg{background:#fff;margin:12px auto;box-shadow:0 2px 12px rgba(0,0,0,.15);width:210mm;min-height:297mm;box-sizing:border-box;padding:25mm}.pg.pai{width:297mm;min-height:210mm}.pg.vazio{padding:25mm}
 .barra{position:sticky;top:0;z-index:5;background:#0b1f3a;color:#fff;font:14px system-ui;padding:10px 16px;display:flex;gap:12px;align-items:center}.barra button{font:inherit;background:#13a5a8;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}}
 @media print{.barra{display:none}}
-</style></head><body>${opc.barra ? `<div class="barra"><b style="flex:1">${esc(opc.titulo || 'PPC')}</b><span>Na janela de impressão, escolha <b>Salvar como PDF</b>.</span><button onclick="print()">Salvar em PDF / Imprimir</button></div>` : ''}${html}${opc.autoPrint ? '<script>addEventListener("load",()=>setTimeout(()=>print(),400))<\/script>' : ''}</body></html>`;
+</style></head><body>${opc.barra ? `<div class="barra"><b style="flex:1">${esc(opc.titulo || 'PPC')}</b><span>Na janela de impressão, escolha <b>Salvar como PDF</b>.</span><button onclick="print()">Salvar em PDF / Imprimir</button></div>` : ''}${html}${PAGINADOR}${opc.autoPrint ? '<script>addEventListener("load",()=>setTimeout(()=>print(),900))<\/script>' : ''}</body></html>`;
     return doc2;
   }
   root.PPC_PDF = { converter };
@@ -3355,7 +3460,7 @@ function vMatriz() {
       <td style="width:118px">${sel(d, 'nucleo', !integ && d.nucleo !== 'TEC' ? [['BNC', 'Base Nac. Comum'], ['PD', 'Parte Diversif.'], ['TEC', 'Específica']] : [['TEC', 'Específica']])}</td>
       ${integ ? `<td style="width:58px">${d.nucleo === 'TEC' ? '' : sel(d, 'area', areas)}</td>` : ''}
       <td style="width:66px">${sel(d, 'serie', Array.from({ length: C.S }, (_, i) => [i + 1, (i + 1) + 'ª']))}</td>
-      <td style="width:64px"><input type="number" min="0" max="20" step="0.5" data-d="${d.id}" data-f="ch" value="${h(d.ch)}" class="num" title="Horas-aula por semana. Ao informar, as h/a no ano são calculadas (${C.sem} semanas)."></td>
+      <td style="width:64px"><input type="number" min="0" max="20" step="1" data-d="${d.id}" data-f="ch" value="${h(d.ch)}" class="num" title="Horas-aula por semana, em número inteiro. Ao informar, as h/a no ano são calculadas (${C.sem} semanas)."></td>
       <td style="width:66px"><input type="number" min="0" step="1" data-d="${d.id}" data-f="chAno" value="${(+d.ch || 0) * C.sem || ''}" class="num" title="Horas-aula no ano. Ao informar, as h/a semanais são calculadas (${C.sem} semanas)."></td>
       <td style="width:98px">${sel(d, 'carater', [['', '—'], ['T', 'Teórica'], ['P', 'Prática']])}</td>
       <td style="width:78px">${sel(d, 'dependencia', [['', '—'], ['S', 'Sim'], ['N', 'Não']])}</td>
@@ -3422,7 +3527,7 @@ function vEmentas() {
     ? `<div class="rotext${String(d[f] || '').trim() ? '' : ' vazio'}">${String(d[f] || '').trim() ? h(d[f]) : 'Não preenchido.'}</div>`
     : `<textarea data-d="${d.id}" data-f="${f}" class="${cls || ''}" placeholder="${h(ph || '')}">${h(d[f])}</textarea>`;
   const dsel = (f, opts, rot, larg) => `<label class="f" style="${larg || ''}"><span>${rot}</span><select data-d="${d.id}" data-f="${f}">${opts.map(([v, t]) => `<option value="${v}"${String(d[f]) === String(v) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
-  const dnum = (f, rot, val, tit) => `<label class="f"><span>${rot}</span><input type="number" min="0" step="${f === 'ch' ? '0.5' : '1'}" data-d="${d.id}" data-f="${f}" value="${h(val)}" title="${h(tit || '')}"></label>`;
+  const dnum = (f, rot, val, tit) => `<label class="f"><span>${rot}</span><input type="number" min="0" step="1" data-d="${d.id}" data-f="${f}" value="${h(val)}" title="${h(tit || '')}"></label>`;
   const integ = P.id.forma === 'integrada';
   const fichaDisc = ro ? '' : `<div class="grid g4" style="margin-top:10px">
     ${dsel('nucleo', !integ && d.nucleo !== 'TEC' ? [['BNC', 'Base Nac. Comum'], ['PD', 'Parte Diversif.'], ['TEC', 'Específica']] : [['TEC', 'Específica']], 'Núcleo')}
@@ -3787,8 +3892,8 @@ document.addEventListener('input', ev => {
   } else if (el.dataset.d) {
     const d = P.disciplinas.find(x => x.id === el.dataset.d); if (!d) return;
     const f = el.dataset.f;
-    if (f === 'chAno') { const sem = +P.id.semanas || 40, v = +el.value || 0; d.ch = v ? Math.round(v / sem * 100) / 100 : 0; }
-    else d[f] = el.type === 'checkbox' ? el.checked : (f === 'ch' || f === 'serie') ? (+el.value || 0) : el.value;
+    if (f === 'chAno') { const sem = +P.id.semanas || 40, v = +el.value || 0; d.ch = v ? Math.max(1, Math.round(v / sem)) : 0; }
+    else d[f] = el.type === 'checkbox' ? el.checked : (f === 'ch' || f === 'serie') ? Math.round(+el.value || 0) : el.value;
     if (f === 'nucleo' && d.nucleo === 'TEC') d.area = '';
     if (f === 'serie' && +d.serie <= 1) { d.temPrereq = ''; d.prereqs = []; }
     if (f === 'temPrereq') { d.semPrereq = d.temPrereq === 'N'; if (d.temPrereq !== 'S') d.prereqs = []; }
@@ -3942,7 +4047,7 @@ document.addEventListener('click', ev => {
 let confirmRm = null;
 
 // ---------- versão e ícones ----------
-const VERSAO = '4.3', VERSAO_DATA = '25/11/2026', VERSAO_TAG = 'beta';
+const VERSAO = '4.4', VERSAO_DATA = '25/11/2026', VERSAO_TAG = 'beta';
 const svg = d => `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC = {
   prev: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
@@ -4510,7 +4615,7 @@ async function colabEntrar(pid) {
     await B.update(`projetos/${pid}/membros/${me}`, { nome: CO.user.nome, email: CO.user.email });
     const meta = await B.get(`projetos/${pid}/meta`);
     if (!meta) throw new Error('PPC não encontrado');
-    if (geradorDe(meta) !== ADAPT.gerador) throw new Error(geradorDe(meta) === 'tecnico' ? 'Este PPC foi compartilhado no gerador dos cursos técnicos. Abra o link no gerador de PPC dos cursos técnicos.' : 'Este PPC foi compartilhado no gerador dos cursos de graduação. Abra o link no gerador de PPC da graduação.');
+    if (geradorDe(meta) !== ADAPT.gerador) throw new Error({ tecnico: 'Este PPC foi compartilhado no gerador dos cursos técnicos. Abra o link no gerador de PPC dos cursos técnicos.', parecer: 'Este documento foi compartilhado na Câmara de Ensino, no gerador de parecer. Abra-o pela área da Câmara.' }[geradorDe(meta)] || 'Este PPC foi compartilhado no gerador dos cursos de graduação. Abra o link no gerador de PPC da graduação.');
     await B.update(`indice/${me}/${pid}`, { curso: meta.curso || '', papel: meta.dono === CO.user.uid ? 'dono' : 'editor', gerador: geradorDe(meta) });
   } catch (e) {
     CO.pid = null; CO.carregando = false; history.replaceState(null, '', location.pathname + location.search);
@@ -4605,7 +4710,7 @@ async function colabAbrir() {
     const mem = Object.entries(CO.membros || {}).filter(([, x]) => !x.removido);
     const on = new Set(Object.values(CO.pres || {}).map(x => chaveEmail(x.email)));
     const link = location.origin + location.pathname + '#ppc=' + CO.pid;
-    return modal(`<div class="colab"><h3>PPC compartilhado: ${h(ADAPT.curso(P) || 'sem nome')}</h3>
+    return modal(`<div class="colab"><h3>${(ADAPT.termo || 'PPC')==='parecer'?'Parecer compartilhado':'PPC compartilhado'}: ${h(ADAPT.curso(P) || 'sem nome')}</h3>
       <p class="muted">Você entrou como <b>${h(CO.user.nome)}</b> (${h(CO.user.email)}). Tudo o que qualquer membro altera é gravado na nuvem e aparece para os demais em tempo real.</p>
       <table class="t"><thead><tr><th>Membro</th><th style="width:110px">Situação</th>${CO.dono ? '<th style="width:70px"></th>' : ''}</tr></thead><tbody>${mem.map(([k, x]) => `<tr><td><b>${h(x.nome || emailDe(k))}</b><div class="muted" style="font-size:12px">${h(emailDe(k))}${x.papel === 'dono' ? ' · criou o PPC' : ''}</div></td><td>${on.has(k) ? '<span style="color:#0f8f92;font-weight:700">● on-line</span>' : '<span class="muted">fora</span>'}</td>${CO.dono ? `<td>${x.papel === 'dono' ? '' : `<button class="sm ghost" data-colab="remover" data-k="${h(k)}">Remover</button>`}</td>` : ''}</tr>`).join('')}</tbody></table>
       <div class="flabel">Link do PPC para a equipe</div><div class="row" style="gap:8px"><input id="colabLink" value="${h(link)}" readonly style="flex:1"><button data-colab="copiar">Copiar</button></div>
@@ -4615,10 +4720,10 @@ async function colabAbrir() {
   let lista = {}; try { lista = (await B.get(`indice/${me}`)) || {}; } catch (e) { }
   const itens = Object.entries(lista).filter(([, x]) => geradorDe(x) === ADAPT.gerador).sort((a, b) => (b[1].criado || 0) - (a[1].criado || 0));
   modal(`<div class="colab"><h3>Trabalhar em equipe</h3><p class="muted">Você entrou como <b>${h(CO.user.nome)}</b> (${h(CO.user.email)}).</p>
-    <div class="flabel">PPCs compartilhados com você</div>
+    <div class="flabel">${(ADAPT.termo || 'PPC')==='parecer'?'Pareceres compartilhados com você':'PPCs compartilhados com você'}</div>
     ${itens.length ? `<div class="ndocs">${itens.map(([pid, x]) => `<div class="ndoc"><div class="ni">PPC</div><div style="flex:1"><b>${h(x.curso || 'PPC sem nome')}</b><div class="muted" style="font-size:12.5px">${x.papel === 'dono' ? 'criado por você' : 'você participa'}</div></div><button class="sm pri" data-colab="abrir" data-pid="${h(pid)}">Abrir</button></div>`).join('')}</div>` : '<p class="muted">Nenhum ainda.</p>'}
-    <div class="flabel">Compartilhar o PPC que está aberto agora</div>
-    <p class="muted" style="font-size:12.5px;margin-top:0">Cria um PPC compartilhado a partir do que está na tela (${h(ADAPT.curso(P) || 'projeto sem nome')}). Depois, envie o link do PPC para os colegas.</p>
+    <div class="flabel">Compartilhar o ${ADAPT.termo || 'PPC'} que está aberto agora</div>
+    <p class="muted" style="font-size:12.5px;margin-top:0">Cria um ${ADAPT.termo || 'PPC'} compartilhado a partir do que está na tela (${h(ADAPT.curso(P) || 'projeto sem nome')}). Depois, envie o link para os colegas.</p>
     <div class="row" style="justify-content:space-between;gap:8px"><button class="ghost" data-colab="logout">Trocar de conta</button><span><button class="ghost" data-mact="cancelar">Fechar</button> <button class="pri" data-colab="criar">Compartilhar este PPC</button></span></div></div>`);
 }
 async function colabCriar() {
@@ -4658,6 +4763,15 @@ setTimeout(() => { colabIniciar().then(B => { if (!B && /ppc=/.test(location.has
 // ---------- Módulo de análise de PPC (Câmara de Ensino) ----------
 // Acesso restrito: só aparece para quem estiver na lista de relatores do Firebase.
 // Todo o conteúdo do relatório é editável: a verificação automática apenas sugere os itens.
+// equipe própria da Câmara: os compartilhamentos do parecer não se misturam com os do gerador de PPC
+try {
+  Object.defineProperty(ADAPT, 'gerador', { get: () => MODE === 'analise' ? 'parecer' : 'tecnico', configurable: true });
+  Object.defineProperty(ADAPT, 'nomeGerador', { get: () => MODE === 'analise' ? 'Gerador de Parecer – Câmara de Ensino' : 'Gerador de PPC – Cursos Técnicos', configurable: true });
+  Object.defineProperty(ADAPT, 'termo', { get: () => MODE === 'analise' ? 'parecer' : 'PPC', configurable: true });
+  const carregouAntes = ADAPT.carregou;
+  ADAPT.carregou = function () { carregouAntes(); if (MODE === 'analise') { anSteps(); if (!anTemPPC()) step = 'a_projeto'; } };
+} catch (e) { }
+
 const touchAN = touch;
 touch = function (full) { if (MODE === 'analise') AN.sujo = true; return touchAN(full); };
 const AN = { sujo: false, relator: null, pid: null, lista: null, carregando: false, cmpAberto: false };
@@ -4700,6 +4814,7 @@ window.ANALISE_HDR = () => {
     + `<button class="tb" id="bAVer"${anTemPPC() ? '' : ' disabled'}>${IC.prev}<span>Visualizar PPC em análise</span></button>`
     + `<button class="tb" id="bAPend"${anTemPPC() ? '' : ' disabled'} title="O PPC com os apontamentos destacados em amarelo, para salvar em PDF">${IC.validar}<span>PPC comentado</span></button>`
     + `<button class="tb" id="bASalvar"${anTemPPC() ? '' : ' disabled'}>${IC.salvar}<span>Salvar análise${AN.sujo ? ' •' : ''}</span></button>`
+    + `<button class="tb" id="bAEquipe" title="Trabalhar no mesmo parecer com outros relatores, ao mesmo tempo. A equipe da Câmara é independente da equipe do gerador de PPC.">${IC.equipe}<span>Equipe</span></button>`
     + `<button class="tb" id="bAFechar"${anTemPPC() ? '' : ' disabled'} title="Encerra a análise atual e deixa a Câmara pronta para um novo PPC">${IC.branco}<span>Fechar análise</span></button>`
     + `<button class="tb pri" id="bAGerar"${anTemPPC() ? '' : ' disabled'}>${IC.gerar}<span>Prévia do parecer</span></button>`
     + `<button class="tb" id="bASair">${IC.share}<span>Sair da Câmara de Ensino</span></button>`;
@@ -4710,6 +4825,7 @@ window.ANALISE_HDRCLICK = function (id) {
   if (id === 'bAPend') { anAbrirComentado(); return true; }
   if (id === 'bASalvar') { anSalvarJson(); return true; }
   if (id === 'bAFechar') { anFechar(); return true; }
+  if (id === 'bAEquipe') { colabAbrir(); return true; }
   if (id === 'bAImp') { $('#fImportar').click(); return true; }
   if (id === 'bAVer') { abrirPreviaViva(); return true; }
   if (id === 'bAGerar') { anPdf(); return true; }
@@ -4787,6 +4903,8 @@ function anCarrega(pr, origem, semSync) {
   P = migrate(pr);
   if (!semSync || !P.analise) P.analise = PPC.analiseSincroniza(P, P.analise);
   if (origem && !P.analise.cabecalho.origem) P.analise.cabecalho.origem = origem;
+  ISS = PPC.validar(P);
+  if (!String(P.analise.situacao || '').trim()) P.analise.situacao = anSugestaoSituacao();
   { const K = P.analise.cabecalho; if (!Array.isArray(K.relatores) || !K.relatores.length) { const eu = (AN.relator && AN.relator.nome) || (CO.user && CO.user.nome) || ''; K.relatores = K.relator ? String(K.relator).split(/\s*;\s*/).filter(Boolean) : (eu ? [eu] : []); } }
   AN.pid = null;
   step = 'a_relatorio'; touch(true); window.scrollTo(0, 0);
@@ -5112,7 +5230,7 @@ function vARelatorio() {
       ${(s.itens || []).map((it, j) => item(it, si, j, s.itens.length)).join('')}
       <button class="sm" data-act="aiAdd" data-s="${si}" style="margin-top:6px">+ Item</button>
     </div>`;
-  const sit = bloco('mostrarSituacao', 'Situação identificada', bind('situacao', A.situacao, {
+  const sit = bloco('mostrarSituacao', 'Situação identificada', `<div style="text-align:right;margin:-4px 0 6px"><button class="sm" data-act="aSugSit" title="Escreve um parágrafo a partir do que a verificação encontrou">Sugerir texto</button></div>` + bind('situacao', A.situacao, {
     type: 'textarea', ph: 'Da leitura do projeto, verificou-se que o documento atende, em sua estrutura, às Orientações para elaboração de PPC da EPTNM, remanescendo os pontos relacionados no quadro a seguir, que devem ser ajustados pela coordenação do curso.'
   }), 'Parágrafo de abertura da análise do mérito, escrito pelo relator: o que foi identificado na leitura do PPC. Entra no parecer logo antes do quadro.', '#0e7490');
   const analise = `<div class="card ablk" style="--c:#b45309;background:#f6f8fb"><div class="row" style="gap:8px;flex-wrap:wrap">
@@ -5240,6 +5358,25 @@ function anPdf() {
     abrirPrevia(html, 'Relatório de análise – ' + (P.id.denominacao || 'PPC'));
   } catch (e) { console.error(e); toast('Erro ao montar o PDF: ' + e.message); }
 }
+// parágrafo de abertura da análise, escrito a partir do que a verificação encontrou
+function anSugestaoSituacao() {
+  if (!anTemPPC()) return '';
+  const I = P.id, C = PPC.calc(P);
+  const forma = ({ integrada: 'na forma integrada', concomitante: 'na forma de concomitância externa', subsequente: 'na forma subsequente' })[I.forma] || '';
+  const curso = I.denominacao || 'curso técnico';
+  const campus = I.campus ? ', do ' + (/^campus/i.test(I.campus) ? I.campus : 'Campus ' + I.campus) : '';
+  const tipo = I.tipo === 'reestruturacao' ? 'de reestruturação' : 'de implantação';
+  const res = PPC.resumoSecoes(ISS).filter(x => x.erros || x.avisos).sort((a, b) => (b.erros * 2 + b.avisos) - (a.erros * 2 + a.avisos));
+  const nE = ISS.filter(x => x.sev === 'erro').length, nA = ISS.filter(x => x.sev === 'aviso').length;
+  const nomes = res.slice(0, 3).map(x => x.nome.replace(/^[\d.]+\s*/, '').toLowerCase());
+  const lista = nomes.length > 1 ? nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] : nomes[0] || '';
+  const abertura = `Da leitura do projeto pedagógico ${tipo} do ${curso}${forma ? ', ' + forma : ''}${campus}, com carga horária total de ${PPC.fmtN(C.hTotal)} horas, verificou-se que o documento observa, em sua estrutura, as Orientações para elaboração dos projetos pedagógicos dos cursos da Educação Profissional Técnica de Nível Médio e as demais normas relacionadas neste parecer.`;
+  if (!nE && !nA) return abertura + ' Não foram identificados itens a ajustar na verificação realizada.';
+  const quanto = nE && nA ? `${nE} ${nE === 1 ? 'item pendente' : 'itens pendentes'} e ${nA} ${nA === 1 ? 'ponto a verificar' : 'pontos a verificar'}`
+    : nE ? `${nE} ${nE === 1 ? 'item pendente' : 'itens pendentes'}` : `${nA} ${nA === 1 ? 'ponto a verificar' : 'pontos a verificar'}`;
+  return abertura + ` Remanescem, contudo, ${quanto}${lista ? ', concentrados em ' + lista : ''}, relacionados um a um no quadro a seguir, cujo atendimento compete à coordenação do curso.`;
+}
+
 function anSalvarJson() {
   if (!anTemPPC()) return toast('Abra um PPC para analisar.');
   P.meta = Object.assign({}, P.meta, { versaoGerador: VERSAO, analiseEm: new Date().toISOString() });
@@ -5309,6 +5446,7 @@ window.ACOES_ANALISE = function (a, t) {
     case 'aPdf': anPdf(); return true;
     case 'aSalvarJson': anSalvarJson(); return true;
     case 'aEquipeRec': { if (CO.B) { CO.B.get('relatores').then(v => { AN.cadastrados = Object.values(v || {}).map(x => (x && x.nome) || '').filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt')); render(); }); } anLista && anLista(); return true; }
+    case 'aSugSit': { A.situacao = anSugestaoSituacao(); A.mostrarSituacao = true; touch(true); toast('Parágrafo sugerido. Reescreva o que achar necessário.'); return true; }
     case 'aFecharSem': anZerar(); return true;
     case 'aFecharSalvar': anSalvarJson(); anZerar(); return true;
     case 'aNuvemSalvar': anNuvemSalvar(); return true;
