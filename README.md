@@ -19,7 +19,7 @@ Ao abrir, ele começa em branco, só com as disciplinas da formação geral já 
 5. **Ementário e programas:** ementa, objetivos, conteúdo, metodologia e bibliografia de cada disciplina.
 6. **Instalações e laboratórios:** ambientes, laboratórios com seus equipamentos e acervo bibliográfico.
 7. **Corpo docente:** o professor responsável por cada disciplina e o corpo técnico.
-8. **Pendências:** a conferência automática de todo o projeto.
+8. **Pendências:** a conferência automática de todo o projeto, com o **PPC comentado** — o projeto em PDF com cada pendência destacada em amarelo e comentada no próprio documento.
 9. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.
 
 Enquanto você preenche, o gerador confere tudo contra o documento orientador, a Resolução CEPE nº 15/2022 e o check list de análise da comissão. Ele avisa, por exemplo, quando a carga horária da parte específica não atinge o mínimo do curso, quando uma série passa do limite semanal, quando falta uma unidade no programa ou quando uma referência está fora da ABNT. Cada aviso tem um atalho que leva direto ao campo a ser corrigido. Os números vermelhos no menu mostram quantas pendências ainda faltam em cada etapa.
@@ -72,7 +72,10 @@ Módulo restrito aos relatores da Câmara de Ensino, para analisar os PPCs receb
 - **Quem acessa:** só quem entra com a conta Google e está cadastrado como relator. Para os demais professores o botão **Câmara** não aparece, e as análises guardadas na nuvem não são legíveis.
 - **Abre sempre limpa:** ao entrar na Câmara não há nenhum parecer carregado. O relator importa o PPC recebido (**PDF**, **Word** ou `.json`), abre uma análise do painel, retoma a que estava neste navegador ou começa um **parecer em branco**.
 - **Leitura do PPC:** a tela *PPC em análise* lista os apontamentos que alimentam o parecer; clicar em um deles abre o **PPC comentado** na posição correspondente. *Visualizar PPC em análise* abre o documento montado ao lado da tela, para leitura corrida.
-- **PPC comentado:** o próprio projeto recebido com cada apontamento **destacado em amarelo** e **comentado no corpo do documento**, mais a relação de todos os apontamentos na última página. Pelo botão *Salvar em PDF* vira um arquivo para devolver à coordenação do curso. O gerador de parecer não altera o PPC: ele lê, destaca e comenta.
+- **PPC comentado:** o próprio projeto recebido com cada apontamento **destacado em amarelo** e **comentado no corpo do documento**, mais a relação de todos os apontamentos na última página. Pelo botão *Salvar em PDF* vira um arquivo para devolver à coordenação do curso. O gerador de parecer não altera o PPC: ele lê, destaca e comenta. O mesmo recurso está no gerador de PPC, para a coordenação conferir antes de enviar.
+- **Equipe da Câmara:** relatores cadastrados, quem está na Câmara no momento e quem publicou análise do PPC aberto. A Câmara tem equipe própria, independente da equipe que elabora o PPC.
+- **Fechar análise:** encerra o trabalho atual e deixa a Câmara em branco para outro PPC; se houver alteração não salva, pergunta antes.
+- **Publicar análise:** põe a análise no painel da Câmara (antes chamado "enviar para a nuvem"). O arquivo `.json` com PPC e parecer sai por *Salvar análise*, no alto da tela.
 - **Situação identificada:** parágrafo livre do relator, que abre a análise do mérito logo antes do quadro de itens.
 - **Blocos coloridos:** cada bloco do relatório tem cor própria na barra lateral e no título, para localizar depressa a parte a alterar.
 - **O que a conferência não faz:** o mérito do projeto. A verificação automática cobre o que se apura por regra; a análise pedagógica é do relator, e por isso todo o parecer é editável.
