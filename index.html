@@ -123,6 +123,8 @@ table.t tr.grp td{background:#f2f5f9;font-weight:700;color:var(--acc);font-size:
 .chip.on{background:#e3ebf5;border-color:var(--acc2);color:var(--acc)}
 .chip.bad{background:var(--errbg);border-color:#f3b4ae;color:var(--err)}
 .chip input{display:none}
+tr.prerow>td{background:#f6f9fd;border-top:0;padding:8px 10px 10px}
+tr.prerow .flabel{font-size:12px}
 .cnt{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#eef0f3;color:var(--mut)}
 .cnt.ok{background:var(--okbg);color:var(--ok)}.cnt.bad{background:var(--errbg);color:var(--err)}
 .flabel{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--mut);margin:12px 0 4px}
@@ -752,6 +754,9 @@ html,body{height:auto!important;min-height:100%}
     const cn = +I.cnctMin || 0;
     if (cn && C.hTec < cn - 0.5) add('erro', 'matriz', `Parte específica com ${fmtN(C.hTec)} h, abaixo do mínimo do CNCT (${fmtN(cn)} h).`, FONTE.cepe, null, 'sel:#matSum');
     if (cn && C.hTec > cn + 100.5) add('erro', 'matriz', `Parte específica com ${fmtN(C.hTec)} h, acima da tolerância (CNCT ${fmtN(cn)} h + 100 h).`, FONTE.cepe, null, 'sel:#matSum');
+    // piso institucional: as disciplinas técnicas não podem ficar abaixo de 30% da carga horária total do curso
+    if (C.hTotal > 0 && C.hTec / C.hTotal < 0.3 - 1e-9)
+      add('erro', 'matriz', `Disciplinas técnicas somam ${fmtN(C.hTec)} h = ${Math.round(C.hTec / C.hTotal * 100)}% da carga horária total (${fmtN(C.hTotal)} h); o mínimo é 30% (${fmtN(Math.ceil(C.hTotal * 0.3))} h). Não há percentual máximo.`, FONTE.cepe, null, 'sel:#matSum');
     if (C.haTec && C.pctPratica < 0.4) add('aviso', 'matriz', `Disciplinas práticas = ${Math.round(C.pctPratica * 100)}% da parte específica (referência institucional: mínimo 40%).`, 'Normativa institucional – confirmar', null, 'sel:#matSum');
     if (I.estagioObrigatorio && cn) {
       const mn = Math.ceil(cn * 0.3);
@@ -2679,21 +2684,36 @@ html,body{height:auto!important;min-height:100%}
             else if (c.localName === 'instrText' && /PAGE/.test(c.textContent)) partes[partes.length - 1] += '\u0000';
           }
         }
-        return { partes, cor, tam };
+        const pp = kid(p, 'pPr'), jc = pp && kid(pp, 'jc');
+        return { partes, cor, tam, jc: (jc && at(jc, 'val')) || '' };
       });
     };
     const H1 = hfTexto('header1'), F1 = hfTexto('footer1');
     const q = s => '"' + String(s || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\u0000\d?/g, '') + '"';
     const pg = s => s.includes('\u0000') ? `${q(s.split('\u0000')[0])} counter(page)` : q(s);
-    const h0 = H1 && H1[0] ? H1[0].partes : ['', ''], f0 = F1 && F1[0] ? F1[0].partes : ['', ''], f1 = F1 && F1[1] ? F1[1].partes.join(' ') : '';
+    const lin = arr => arr.length ? arr.map(q).join(' "\\A" ') : '""';
+    const FAIXA = '#e6e8ea';   // tarja cinza atrás do rodapé, como nos PPCs da instituição
+    const h0 = H1 && H1[0] ? H1[0].partes : ['', ''];
+    // rodapé: cada parágrafo do rodapé do documento vira uma linha, na mesma posição (esquerda, centro ou direita)
+    const fBal = { left: [], center: [], right: [] };
+    let fTam = 0;
+    (F1 || []).forEach(p => {
+      const txt = p.partes.join('  ').replace(/\u0000\d?/g, '').replace(/\s+/g, ' ').trim();
+      if (!txt) return;   // o parágrafo que só traz o número da página não conta para o tamanho
+      if (!fTam && +p.tam) fTam = +p.tam;
+      fBal[p.jc === 'center' ? 'center' : p.jc === 'right' ? 'right' : 'left'].push(txt);
+    });
+    fTam = fTam || 7.5;
+    const fTxt = ['center', 'left', 'right'].map(k => fBal[k].join('\n')).filter(Boolean).join('\n');
     const corH = (H1 && H1[0] && H1[0].cor) || '333', corF = (F1 && F1[0] && F1[0].cor) || '333';
     const logoCab = opc.logoCabecalho || '';
     const M = '25mm'; // margens (1418 twips)
-    const margem = (nome, larg) => `@page ${nome}{size:${larg};margin:${M} ${M} 24mm ${M};
+    const margem = (nome, larg) => `@page ${nome}{size:${larg};margin:${M} ${M} 19mm ${M};
       @top-left{content:${logoCab ? `image-set(url(${logoCab}) 3x) ` : ''}${q(h0.length > 1 ? h0[0] : '')};font:8pt ${FONTE};color:#${corH};vertical-align:bottom;padding-bottom:3mm}
       @top-right{content:${q(h0[h0.length - 1])};font:${opc.moderno ? 8.5 : 10}pt ${FONTE};color:#${opc.moderno ? '64748B' : '000'};vertical-align:bottom;padding-bottom:3mm${opc.moderno ? '' : ';border-bottom:0'}}
-      @bottom-left{content:${q(f0[0])}${f1 ? ` "\\A" ${q(f1)}` : ''};white-space:pre;font:8pt ${FONTE};color:#${opc.moderno ? '64748B' : '000'};vertical-align:top;padding-top:3mm}
-      @bottom-right{content:counter(page);font:${opc.moderno ? '700 12pt' : '10pt'} ${FONTE};color:#${opc.moderno ? '0B1F3A' : '000'};vertical-align:top;padding-top:3mm}}`;
+      @bottom-left{content:${lin(fBal.left)};white-space:pre;font:${fTam}pt ${FONTE};color:#3a3a3a;vertical-align:center;background:${FAIXA};padding:0.8mm 1.5mm}
+      @bottom-center{content:${lin(fBal.center)};white-space:pre;text-align:center;font:${fTam}pt ${FONTE};color:#3a3a3a;vertical-align:center;background:${FAIXA};padding:0.8mm 1.5mm}
+      @bottom-right{content:counter(page);text-align:right;font:700 ${Math.max(8, fTam + 0.5)}pt ${FONTE};color:#${opc.moderno ? '0B1F3A' : '222'};vertical-align:center;background:${FAIXA};padding:0.8mm 1.5mm}}`;
     let pageCss = `@page vazio{size:A4;margin:0}\n${margem('ret', 'A4')}\n${margem('pai', 'A4 landscape')}`;
     // corpo
     let html = '';
@@ -2705,13 +2725,20 @@ html,body{height:auto!important;min-height:100%}
       const nome = vazio ? 'vazio' : pais ? 'pai' : 'ret';
       // divide em páginas nas quebras explícitas
       const paginas = [[]]; const ctxs = [{ ancoras: [] }];
+      let depoisTbl = false;
       s.itens.forEach(e => {
         if (e.localName === 'p') {
+          // parágrafo vazio logo depois de um quadro: vira um respiro curto, não uma linha inteira
+          const vazioP = !e.textContent.trim() && !e.getElementsByTagName('w:drawing').length && !kid(kid(e, 'pPr'), 'pBdr');
+          if (depoisTbl && vazioP && !kid(kid(e, 'pPr'), 'sectPr') && !/w:type="page"/.test(new XMLSerializer().serializeToString(e))) {
+            paginas[paginas.length - 1].push('<p class="pvz"></p>'); depoisTbl = false; return;
+          }
+          depoisTbl = false;
           const r = paragrafo(e, ctxs[ctxs.length - 1]);
           if (r.quebra && !r.html) { paginas.push([]); ctxs.push({ ancoras: [] }); return; }
           paginas[paginas.length - 1].push(r.html);
           if (r.quebra) { paginas.push([]); ctxs.push({ ancoras: [] }); }
-        } else if (e.localName === 'tbl') paginas[paginas.length - 1].push(tabela(e));
+        } else if (e.localName === 'tbl') { paginas[paginas.length - 1].push(tabela(e)); depoisTbl = true; }
       });
       html += paginas.map((cont, i) => cont.length || ctxs[i].ancoras.length ? `<section class="pg ${nome}">${ctxs[i].ancoras.join('')}<div class="ct">${cont.join('')}</div></section>` : '').join('');
     });
@@ -2814,8 +2841,24 @@ function paginar(){
       if(pg.scrollHeight<=H+2)continue;
       quebra(pg,util);
     }
+    numerar();
     document.documentElement.setAttribute('data-paginado','1');
   }catch(e){ document.documentElement.setAttribute('data-paginado','erro'); }
+}
+// na tela as caixas de margem do @page não aparecem: o rodapé e o número da folha são desenhados em cada .pg
+function numerar(){
+  var txt=document.body.getAttribute('data-rodape')||'', tam=document.body.getAttribute('data-rodapetam')||'8';
+  var pgs=[].slice.call(document.querySelectorAll('.pg')), n=0;
+  for(var i=0;i<pgs.length;i++){
+    var pg=pgs[i]; if(pg.classList.contains('vazio'))continue;
+    n++;
+    var velho=pg.querySelector(':scope>.pgrod'); if(velho)pg.removeChild(velho);
+    var d=document.createElement('div'); d.className='pgrod'; d.setAttribute('aria-hidden','true');
+    d.innerHTML='<span class="pgrodt"></span><span class="pgrodn"></span>';
+    d.firstChild.textContent=txt; d.lastChild.textContent=String(n);
+    d.style.fontSize=tam+'pt';
+    pg.appendChild(d);
+  }
 }
 if(document.readyState==='complete')paginar();else addEventListener('load',paginar);
 })();` + '<' + '/script>';
@@ -2832,6 +2875,7 @@ p{margin:0;${defP}orphans:2;widows:2}
 .pg.vazio .ct{position:relative;z-index:1}
 .anc{position:absolute;z-index:0}
 table.tw{border-collapse:collapse;table-layout:fixed;margin:0 auto}
+p.pvz{height:3pt;line-height:3pt;margin:0;font-size:3pt}
 table.tw td{overflow-wrap:anywhere}
 tr.nb{break-inside:avoid}
 thead{display:table-header-group}
@@ -2841,9 +2885,13 @@ thead{display:table-header-group}
 img{max-width:100%}
 ${css}
 @media screen{body{background:#e8ecf1}.pg{background:#fff;margin:12px auto;box-shadow:0 2px 12px rgba(0,0,0,.15);width:210mm;min-height:297mm;box-sizing:border-box;padding:25mm}.pg.pai{width:297mm;min-height:210mm}.pg.vazio{padding:25mm}
+.pgrod{position:absolute;left:25mm;right:25mm;bottom:5mm;display:flex;align-items:center;gap:5mm;color:#3a3a3a;line-height:1.25;background:#e6e8ea;padding:0.9mm 2mm}
+.pgrodt{flex:1;white-space:pre-line;text-align:center}
+.pgrodn{font-weight:700;color:#333;white-space:nowrap;min-width:16px;text-align:right;padding-left:4mm;border-left:.4pt solid #c8ccd2}
+.pg.vazio .pgrod{display:none}
 .barra{position:sticky;top:0;z-index:5;background:#0b1f3a;color:#fff;font:14px system-ui;padding:10px 16px;display:flex;gap:12px;align-items:center}.barra button{font:inherit;background:#13a5a8;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}}
-@media print{.barra{display:none}}
-</style></head><body>${opc.barra ? `<div class="barra"><b style="flex:1">${esc(opc.titulo || 'PPC')}</b><span>Na janela de impressão, escolha <b>Salvar como PDF</b>.</span><button onclick="print()">Salvar em PDF / Imprimir</button></div>` : ''}${html}${PAGINADOR}${opc.autoPrint ? '<script>addEventListener("load",()=>setTimeout(()=>print(),900))<\/script>' : ''}</body></html>`;
+@media print{.barra{display:none}.pgrod{display:none}}
+</style></head><body data-rodape="${esc(fTxt).replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}" data-rodapetam="${fTam}">${opc.barra ? `<div class="barra"><b style="flex:1">${esc(opc.titulo || 'PPC')}</b><span>Na janela de impressão, escolha <b>Salvar como PDF</b>.</span><button onclick="print()">Salvar em PDF / Imprimir</button></div>` : ''}${html}${PAGINADOR}${opc.autoPrint ? '<script>addEventListener("load",()=>setTimeout(()=>print(),900))<\/script>' : ''}</body></html>`;
     return doc2;
   }
   root.PPC_PDF = { converter };
@@ -3125,6 +3173,11 @@ async function baixar(nome, data) {
 }
 let toastT;
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
+const carimbo = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}-${z(d.getHours())}h${z(d.getMinutes())}`; };
+const cursoTitulo = () => ((P && P.id && P.id.denominacao || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ')
+  .map(w => w ? w.charAt(0).toUpperCase() + w.slice(1) : '').join('-').slice(0, 70)) || 'Curso';
+const nomeBase = extra => `PPC-${cursoTitulo()}${extra ? '-' + extra : ''}-${carimbo()}`;
+const nomeArquivo = (ext, pre, extra) => `${pre ? pre + '-' : ''}${nomeBase(extra)}.${ext}`;
 const slug = () => (P.id.denominacao || 'ppc').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 60) || 'ppc';
 function lerJSON(file, cb) {
   const r = new FileReader();
@@ -3430,11 +3483,22 @@ function resumoMatrizHTML() {
   });
   if (integ) out += k('Formação geral', PPC.fmtN(C.hFG) + ' h', 'exigido: 2.400 h', Math.abs(C.hFG - 2400) > 0.5);
   out += k('Parte específica', PPC.fmtN(C.hTec) + ' h', `CNCT ${PPC.fmtN(cn)} h (+100 h tolerância)`, cn ? (C.hTec < cn - 0.5 || C.hTec > cn + 100.5) : null);
+  out += k('Técnicas / total', (C.hTotal ? Math.round(C.hTec / C.hTotal * 100) : 0) + '%', `mínimo 30% (${PPC.fmtN(Math.ceil(C.hTotal * 0.3))} h) · sem máximo`, C.hTotal ? C.hTec / C.hTotal < 0.3 : null);
   const mn = Math.ceil(cn * 0.3);
   out += k('Estágio', I.estagioObrigatorio ? C.hEst + ' h' : '—', I.estagioObrigatorio ? `faixa: ${mn}–480 h` : 'não obrigatório', I.estagioObrigatorio ? (C.hEst < mn || C.hEst > 480) : null);
   out += k('Práticas (parte específica)', Math.round(C.pctPratica * 100) + '%', 'referência: ≥ 40%', C.haTec ? C.pctPratica < 0.4 : null);
   out += k('Carga horária total', PPC.fmtN(C.hTotal) + ' h', `h/a de ${C.min} min · ${C.sem} semanas`);
   return out + '</div>';
+}
+// disciplinas de séries anteriores, para marcar os pré-requisitos (usado na matriz e no ementário)
+function prereqChipsHTML(d) {
+  const antes = [...new Map(P.disciplinas.filter(x => +x.serie < +d.serie && x.nome && x.id !== d.id)
+    .sort((a, b) => (+a.serie - +b.serie) || ((a.nucleo === d.nucleo ? 0 : 1) - (b.nucleo === d.nucleo ? 0 : 1)) || a.nome.localeCompare(b.nome))
+    .map(x => [PPC.norm(x.nome), x])).values()];
+  const conhecidos = new Set(antes.map(x => PPC.norm(x.nome)));
+  const fora = (d.prereqs || []).filter(n => !conhecidos.has(PPC.norm(n)));
+  if (!antes.length && !fora.length) return '<span class="muted">Não há disciplinas cadastradas em séries anteriores.</span>';
+  return `<div class="chips" data-pre="${d.id}">${antes.map(x => `<label class="chip ${(d.prereqs || []).some(y => PPC.norm(y) === PPC.norm(x.nome)) ? 'on' : ''}"><input type="checkbox" data-act="pre" data-id="${d.id}" data-n="${h(x.nome)}">${h(x.nome)} <span class="muted">${x.serie}ª</span></label>`).join('')}${fora.map(n => `<span class="chip bad" data-act="preRm" data-id="${d.id}" data-n="${h(n)}" title="Não existe em série anterior — clique para remover">✕ ${h(n)}</span>`).join('')}</div>`;
 }
 function vMatriz() {
   const I = P.id, integ = I.forma === 'integrada', C = PPC.calc(P);
@@ -3465,9 +3529,9 @@ function vMatriz() {
       <td style="width:98px">${sel(d, 'carater', [['', '—'], ['T', 'Teórica'], ['P', 'Prática']])}</td>
       <td style="width:78px">${sel(d, 'dependencia', [['', '—'], ['S', 'Sim'], ['N', 'Não']])}</td>
       <td style="width:78px">${+d.serie > 1 ? sel(d, 'temPrereq', [['', '—'], ['S', 'Sim'], ['N', 'Não']]) : '<span class="muted" title="1ª série não tem pré-requisito">—</span>'}</td>
-      <td style="width:36px"><button class="sm del" data-act="discRm" data-id="${d.id}" title="Excluir">✕</button></td></tr>`).join('');
+      <td style="width:36px"><button class="sm del" data-act="discRm" data-id="${d.id}" title="Excluir">✕</button></td></tr>${+d.serie > 1 && d.temPrereq === 'S' ? `<tr class="prerow"><td colspan="${ncol}"><div class="flabel" style="margin:0 0 5px">Pré-requisitos de <b>${h(d.nome || '(sem nome)')}</b> <span class="muted" style="font-weight:400">marque as disciplinas de séries anteriores</span></div>${prereqChipsHTML(d)}</td></tr>` : ''}`).join('');
   }
-  return `<h2>Matriz curricular</h2><p class="lead">Cada linha é uma disciplina em uma série. ${integ ? 'A formação geral (🔒) é a do Quadro 1, obrigatória e com ementas e programas padronizados: informe as horas-aula semanais de cada uma (passe o mouse sobre o campo para ver o valor do Quadro 1). Inclua as disciplinas da parte específica com “+ Disciplina”. ' : ''}Para cada disciplina informe se é teórica ou prática, se permite dependência e, a partir da 2ª série, se tem pré-requisito (quais são, você marca no Ementário).</p>
+  return `<h2>Matriz curricular</h2><p class="lead">Cada linha é uma disciplina em uma série. ${integ ? 'A formação geral (🔒) é a do Quadro 1, obrigatória e com ementas e programas padronizados: informe as horas-aula semanais de cada uma (passe o mouse sobre o campo para ver o valor do Quadro 1). Inclua as disciplinas da parte específica com “+ Disciplina”. ' : ''}Para cada disciplina informe se é teórica ou prática, se permite dependência e, a partir da 2ª série, se tem pré-requisito. Ao marcar <b>Sim</b>, abre-se logo abaixo da linha a lista das disciplinas das séries anteriores para você escolher quais são.</p>
   <div class="card"><h3>Parâmetros</h3><div class="grid">
     ${fld('Forma de oferta', inp('id.forma', I.forma, { type: 'select', opts: [['integrada', 'Integrada (3 séries)'], ['concomitante', 'Concomitância externa'], ['subsequente', 'Subsequente']] }))}
     ${integ ? '' : fld('Número de séries/módulos', inp('id.nSeries', I.nSeries, { type: 'number', min: 1 }))}
@@ -3517,9 +3581,6 @@ function vEmentas() {
     list += `<div class="hd">${s}ª série</div>` + ord.map(d => { const st = statusDisc(d); return `<a data-disc="${d.id}" class="${d.id === selDisc ? 'on' : ''}"><span class="dot ${st.cls}"></span>${h(d.nome || '(sem nome)')}${d.padrao ? ' <span class="tag">FG</span>' : ''}<span class="c">${st.n || ''}</span></a>`; }).join('');
   }
   const d = P.disciplinas.find(x => x.id === selDisc);
-  const antes = [...new Map(P.disciplinas.filter(x => +x.serie < +d.serie && x.nome).sort((a, b) => (a.nucleo === d.nucleo ? 0 : 1) - (b.nucleo === d.nucleo ? 0 : 1)).map(x => [PPC.norm(x.nome), x.nome])).values()];
-  const conhecidos = new Set(antes.map(PPC.norm));
-  const fora = d.prereqs.filter(n => !conhecidos.has(PPC.norm(n)));
   const tem = d.padrao && !!PPC.textoPadrao(d), alt = d.padrao ? PPC.camposAlterados(d) : [];
   const rest = f => tem ? `<button class="sm" data-act="restCampo" data-id="${d.id}" data-f="${f}" data-restaura="${f}" style="${alt.includes(f) ? '' : 'display:none'}">↺ Restaurar padrão</button>` : '';
   const ro = !!d.padrao;   // formação geral: texto institucional, apenas visualização
@@ -3543,10 +3604,7 @@ function vEmentas() {
   let pre = '';
   if (+d.serie > 1) {
     if (d.temPrereq === 'S') pre = `<div class="flabel">Pré-requisitos (marque as disciplinas de séries anteriores)<span class="sp"></span><a href="#" data-goto="matriz" class="muted" style="font-weight:400">alterar na matriz</a></div>
-      <div class="chips" data-pre="${d.id}">
-        ${antes.map(n => `<label class="chip ${d.prereqs.some(x => PPC.norm(x) === PPC.norm(n)) ? 'on' : ''}"><input type="checkbox" data-act="pre" data-id="${d.id}" data-n="${h(n)}">${h(n)}</label>`).join('')}
-        ${fora.map(n => `<span class="chip bad" data-act="preRm" data-id="${d.id}" data-n="${h(n)}" title="Não existe em série anterior — clique para remover">✕ ${h(n)}</span>`).join('')}
-      </div>`;
+      ${prereqChipsHTML(d)}`;
     else pre = `<div class="flabel">Pré-requisito</div><div class="muted" data-pre="${d.id}">${d.temPrereq === 'N' ? 'Não há pré-requisito.' : 'Ainda não informado.'} Defina na <a href="#" data-goto="matriz">Matriz curricular</a> se a disciplina tem pré-requisito.</div>`;
   }
   return `<h2>Ementário e programas</h2><p class="lead">Quadros 3 e 4 do documento orientador. A ementa é a relação dos títulos das unidades do programa. Série, carga horária, caráter, dependência e pré-requisito podem ser informados aqui ou na Matriz curricular — é o mesmo dado. As disciplinas da formação geral têm texto institucional padronizado e aparecem apenas para consulta.</p>
@@ -3826,7 +3884,7 @@ document.addEventListener('mouseover', ev => {
 });
 function matrizAnoPDF() {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Matriz curricular</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px/1.3 Calibri,Arial,sans-serif;margin:0;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:15px;margin:0 0 2px}.sub{color:#64748b;margin-bottom:8px}${MCSS}.mcol{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}.mcol .mch{flex-basis:100%}.mcol .mcard{flex:0 0 calc(50% - 2px);box-sizing:border-box;margin:0;padding:4px 6px;font-size:10px}.mcard .mn{font-size:10.5px}</style></head><body><h1>Matriz curricular por ano – ${h(P.id.denominacao || 'Curso')}</h1><div class="sub">${h(P.id.instituicao)}${P.id.campus ? ' · Campus ' + h(P.id.campus) : ''}</div>${matrizAnoHTML(true)}</body></html>`;
-  abrirPrevia(html, 'Matriz por ano – ' + (P.id.denominacao || 'Curso'));
+  abrirPrevia(html, 'Matriz por ano – ' + (P.id.denominacao || 'Curso'), '', nomeBase('Matriz-por-ano'));
 }
 const MCSS = `.mleglist{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:10px;font-size:12px}.mleg{display:inline-flex;align-items:center;gap:6px}.mleg i{width:14px;height:14px;border-radius:4px;border:2px solid;display:inline-block}
 .mgrid{display:grid;gap:10px;overflow-x:auto;padding-bottom:6px;align-items:start}
@@ -3858,7 +3916,7 @@ async function tutorialPDF() {
     try { const r = await fetch('Tutorial-Gerador-PPC-Tecnico.pdf'); if (r.ok) return baixar('Tutorial-Gerador-PPC-Tecnico.pdf', await r.blob()); } catch (e) { }
   }
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Tutorial do Gerador de PPC para Cursos Técnicos</title><style>@page{size:A4;margin:16mm 15mm}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}${TUTORIAL.css}</style></head><body><div class="tut">${tutHTML()}</div></body></html>`;
-  abrirPrevia(html, 'Tutorial do Gerador de PPC');
+  abrirPrevia(html, 'Tutorial do Gerador de PPC', '', 'Tutorial-Gerador-PPC-Tecnico');
 }
 
 // ---------- eventos ----------
@@ -4031,11 +4089,11 @@ document.addEventListener('click', ev => {
     case 'tecRm': P.tecnicos = P.tecnicos.filter(x => x.id !== id); touch(true); break;
     case 'restCampo': { const d = D(), c = PPC.textoPadrao(d); if (c) { d[t.dataset.f] = c[t.dataset.f] || ''; touch(true); toast('Texto padrão restaurado.'); } break; }
     case 'gPdf': case 'gPdfM': gerarPDF(a === 'gPdfM'); break;
-    case 'gDocxM': try { baixar(`PPC-${slug()}-novo-layout.docx`, PPC.gerarPPC(P, { tema: 'moderno' })); } catch (e) { console.error(e); toast('Erro ao gerar o PPC: ' + e.message); } break;
-    case 'gDocx': try { baixar(`PPC-${slug()}.docx`, PPC.gerarPPC(P)); } catch (e) { console.error(e); toast('Erro ao gerar o PPC: ' + e.message); } break;
-    case 'gXlsx': baixar(`Tabelas-${slug()}.xlsx`, PPC.gerarMatrizXlsx(P)); break;
-    case 'gJson': baixar(`Projeto-${slug()}.json`, JSON.stringify(P, null, 1)); break;
-    case 'gParecer': baixar(`Parecer-${slug()}.docx`, PPC.gerarParecer(P)); break;
+    case 'gDocxM': try { baixar(nomeArquivo('docx', '', 'novo-layout'), PPC.gerarPPC(P, { tema: 'moderno' })); } catch (e) { console.error(e); toast('Erro ao gerar o PPC: ' + e.message); } break;
+    case 'gDocx': try { baixar(nomeArquivo('docx'), PPC.gerarPPC(P)); } catch (e) { console.error(e); toast('Erro ao gerar o PPC: ' + e.message); } break;
+    case 'gXlsx': baixar(nomeArquivo('xlsx', '', 'Tabelas'), PPC.gerarMatrizXlsx(P)); break;
+    case 'gJson': baixar(nomeArquivo('json', 'BKP'), JSON.stringify(P, null, 1)); break;
+    case 'gParecer': baixar(nomeArquivo('docx', 'Parecer'), PPC.gerarParecer(P)); break;
     case 'cmp': $('#fComparar').click(); break;
     case 'maMove': { const d = P.disciplinas.find(x => x.id === id); moverAno(id, +d.serie + +t.dataset.dx); break; }
     case 'maAbrir': { const d = P.disciplinas.find(x => x.id === id); if (!d || d.padrao) { toast('Disciplina da formação geral: conteúdo institucional, não editável pela matriz.'); break; } selDisc = id; go('ementas'); break; }
@@ -4047,7 +4105,7 @@ document.addEventListener('click', ev => {
 let confirmRm = null;
 
 // ---------- versão e ícones ----------
-const VERSAO = '4.4', VERSAO_DATA = '25/11/2026', VERSAO_TAG = 'beta';
+const VERSAO = '4.8', VERSAO_DATA = '27/11/2026', VERSAO_TAG = 'beta';
 const svg = d => `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC = {
   prev: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
@@ -4069,6 +4127,7 @@ const IC = {
   validar: svg('<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>'),
   gerar: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>'),
   bib: svg('<path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 3 15.5-3.5 1z"/>'),
+  sair: svg('<path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10"/><path d="M15.5 8.5 19 12l-3.5 3.5"/><path d="M19 12H9"/>'),
   camara: svg('<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/>'),
   tut: svg('<path d="M3 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/>'),
   ori: svg('<circle cx="12" cy="12" r="9"/><path d="M12 8v.5M12 11v5"/>'),
@@ -4319,18 +4378,31 @@ async function gerarPDF(moderno) {
     const lc = moderno ? '' : await logoCab();
     const partes = PPC.gerarPPC(P, { tema: moderno ? 'moderno' : '', partes: true });
     const titulo = `PPC – ${P.id.denominacao || 'Curso'}${moderno ? ' (novo layout)' : ''}`;
-    const html = PPC_PDF.converter(partes, { moderno, titulo, barra: false, logoCabecalho: lc });
-    abrirPrevia(html, titulo);
+    const arq = nomeBase(moderno ? 'novo-layout' : '');
+    const html = PPC_PDF.converter(partes, { moderno, titulo: arq, barra: false, logoCabecalho: lc });
+    abrirPrevia(html, titulo, '', arq);
   } catch (e) { console.error(e); toast('Erro ao montar o PDF: ' + e.message); }
 }
 // Chrome, Edge, Opera e Brave imprimem cabeçalho, rodapé e número de página do PDF (margens de página CSS)
 const ehChromium = () => { const u = navigator.userAgent; return /Chrome\/|Chromium\/|Edg\//.test(u) && !/CriOS|FxiOS|EdgiOS/.test(u); };
-function abrirPrevia(html, titulo, ancora) {
+function abrirPrevia(html, titulo, ancora, arq) {
   let o = $('#previa');
   if (!o) { o = document.createElement('div'); o.id = 'previa'; document.body.appendChild(o); }
-  o.innerHTML = `<div class="pv-bar"><b>${h(titulo)}</b><span class="muted">Clique em <b>Salvar em PDF</b> e, na janela de impressão, escolha “Salvar como PDF”.${ehChromium() ? '' : ' <b style="color:#b45309">Neste navegador o PDF pode sair sem cabeçalho, rodapé e número de página; para o PDF completo use Chrome ou Edge, ou baixe o arquivo .docx.</b>'}</span><button class="tb pri" data-pv="print">Salvar em PDF</button><button class="tb" data-pv="baixar" title="Se a janela de impressão não abrir aqui, baixe este arquivo, abra-o e ele mostrará a impressão">Baixar para imprimir</button><button class="tb" data-pv="fechar">Fechar</button></div><iframe id="pvFrame"></iframe>`;
+  o.innerHTML = `<div class="pv-bar"><b>${h(titulo)}</b><span class="muted" id="pvMsg">Montando as páginas… aguarde para o documento sair certo no PDF.</span><button class="tb pri" data-pv="print" disabled>Salvar em PDF</button><button class="tb" data-pv="aba" disabled>Abrir em nova aba</button><button class="tb" data-pv="baixar" title="Guarda a página pronta para impressão (.html); abra-a e mande imprimir para gerar o PDF" disabled>Baixar a página (.html)</button><button class="tb" data-pv="fechar">Fechar</button></div><iframe id="pvFrame"></iframe>`;
   o.classList.add('on');
+  o._arq = arq || nomeBase();
   const fr = $('#pvFrame');
+  {
+    let n = 0;
+    const lib = setInterval(() => {
+      let pronto = false;
+      try { pronto = !!fr.contentDocument && !!fr.contentDocument.documentElement.getAttribute('data-paginado'); } catch (e) { pronto = true; }
+      if (!pronto && ++n < 900) return;
+      clearInterval(lib);
+      const msg = $('#pvMsg'); if (msg) msg.innerHTML = `Clique em <b>Salvar em PDF</b> e, na janela de impressão, escolha “Salvar como PDF”. O arquivo sai com o nome <b>${h(o._arq + '.pdf')}</b>.${ehChromium() ? '' : ' <b style="color:#b45309">Neste navegador o PDF pode sair sem cabeçalho, rodapé e número de página; para o PDF completo use Chrome ou Edge, ou baixe o arquivo .docx.</b>'}`;
+      $$('#previa [data-pv]').forEach(x => x.disabled = false);
+    }, 120);
+  }
   fr.onload = ancora ? () => {
     try {
       const el = fr.contentDocument.getElementById(ancora);
@@ -4345,7 +4417,17 @@ document.addEventListener('click', ev => {
   const o = $('#previa');
   if (b.dataset.pv === 'fechar') { o.classList.remove('on'); o.innerHTML = ''; return; }
   if (b.dataset.pv === 'print') { try { $('#pvFrame').contentWindow.focus(); $('#pvFrame').contentWindow.print(); } catch (e) { toast('A impressão foi bloqueada aqui: use “Baixar para imprimir”.'); } return; }
-  if (b.dataset.pv === 'baixar') baixar(`${o._titulo.replace(/[^\wÀ-ÿ -]+/g, '').replace(/\s+/g, '-')}-para-PDF.html`, o._html.replace('</body>', '<script>addEventListener("load",()=>setTimeout(()=>print(),500))<\/script></body>'));
+  if (b.dataset.pv === 'baixar') baixar(`${o._arq || 'PPC'}.html`, o._html.replace('</body>', '<script>addEventListener("load",()=>setTimeout(()=>print(),500))<\/script></body>'));
+  if (b.dataset.pv === 'aba') {
+    try {
+      const u = URL.createObjectURL(new Blob([o._html], { type: 'text/html' }));
+      const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 60000);
+      toast('Documento aberto em outra aba. Lá, use Ctrl+P → “Salvar como PDF”.');
+    } catch (e) { toast('O navegador bloqueou a nova aba: permita janelas para este site.'); }
+    return;
+  }
 });
 
 // ---------- Normas e documentos de consulta ----------
@@ -4368,9 +4450,9 @@ const LEIS = [
   ['Lei nº 12.711/2012 – Reserva de vagas', 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12711.htm', 'Requisito de acesso: ingresso nas instituições federais.'],
   ['Lei nº 14.723/2023 – Atualização da Lei de Cotas', 'https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm', 'Altera a Lei nº 12.711/2012.'],
 ];
-const README_MD = "# Gerador de PPC para Cursos T\u00e9cnicos\n\nEste \u00e9 um gerador de Projeto Pedag\u00f3gico de Curso (PPC) para os cursos t\u00e9cnicos da Educa\u00e7\u00e3o Profissional T\u00e9cnica de N\u00edvel M\u00e9dio (EPTNM) da Universidade Federal de Ci\u00eancia e Inova\u00e7\u00e3o de Minas Gerais (UFCIMG), o antigo CEFET-MG.\n\nA ideia deste gerador \u00e9 que as coordena\u00e7\u00f5es de curso produzam PPCs institucionais padronizados, todos no mesmo formato: as mesmas tabelas, carga hor\u00e1ria dentro das normas, ementas coerentes com os programas e refer\u00eancias em ABNT. O coordenador de curso preenche o conte\u00fado, e o documento sai pronto, no padr\u00e3o institucional.\n\n**Acesse:** https://alexandrefariasbh.github.io/gerador-de-PPC/\n\n## Como funciona\n\nO gerador abre direto no navegador, sem instalar nada e sem login. Funciona no computador, no notebook e no tablet, nas vers\u00f5es atuais do Chrome, Edge, Firefox e Safari (16.4 ou mais recente). O PPC em PDF sai completo, com cabe\u00e7alho, rodap\u00e9 e n\u00famero de p\u00e1gina, no Chrome e no Edge; nos outros navegadores, use o arquivo .docx para ter o documento completo.\n\nAo abrir, ele come\u00e7a em branco, s\u00f3 com as disciplinas da forma\u00e7\u00e3o geral j\u00e1 preenchidas, porque elas s\u00e3o padronizadas para todos os cursos. Voc\u00ea segue as etapas do menu lateral:\n\n1. **Identifica\u00e7\u00e3o e capa:** curso, campus, forma de oferta, hist\u00f3rico e comiss\u00e3o proponente.\n2. **Textos do projeto:** apresenta\u00e7\u00e3o, justificativa, objetivos, perfil profissional e as demais se\u00e7\u00f5es.\n3. **Matriz curricular:** as disciplinas da parte espec\u00edfica e a carga hor\u00e1ria de cada uma.\n4. **Matriz por ano:** a matriz em cart\u00f5es coloridos, s\u00e9rie a s\u00e9rie, para visualizar o curso e remanejar disciplinas.\n5. **Ement\u00e1rio e programas:** ementa, objetivos, conte\u00fado, metodologia e bibliografia de cada disciplina.\n6. **Instala\u00e7\u00f5es e laborat\u00f3rios:** ambientes, laborat\u00f3rios com seus equipamentos e acervo bibliogr\u00e1fico.\n7. **Corpo docente:** o professor respons\u00e1vel por cada disciplina e o corpo t\u00e9cnico.\n8. **Pend\u00eancias:** a confer\u00eancia autom\u00e1tica de todo o projeto, com o **PPC comentado** \u2014 o projeto em PDF com cada pend\u00eancia destacada em amarelo e comentada no pr\u00f3prio documento.\n9. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.\n\nEnquanto voc\u00ea preenche, o gerador confere tudo contra o documento orientador, a Resolu\u00e7\u00e3o CEPE n\u00ba 15/2022 e o check list de an\u00e1lise da comiss\u00e3o. Ele avisa, por exemplo, quando a carga hor\u00e1ria da parte espec\u00edfica n\u00e3o atinge o m\u00ednimo do curso, quando uma s\u00e9rie passa do limite semanal, quando falta uma unidade no programa ou quando uma refer\u00eancia est\u00e1 fora da ABNT. Cada aviso tem um atalho que leva direto ao campo a ser corrigido. Os n\u00fameros vermelhos no menu mostram quantas pend\u00eancias ainda faltam em cada etapa.\n\n## O que o gerador entrega\n\n- **PPC completo**, no padr\u00e3o institucional, em arquivo PDF ou .docx: capa, folha de rosto, sum\u00e1rio, ficha de identifica\u00e7\u00e3o, matriz curricular, ement\u00e1rio, programas, laborat\u00f3rios, acervo e corpo docente.\n- **PPC completo \u2013 Novo Layout**, uma proposta de visual mais moderno para o mesmo conte\u00fado, em arquivo PDF ou .docx, para avalia\u00e7\u00e3o como novo padr\u00e3o.\n- **Tabelas em Excel**, para a comiss\u00e3o conferir a matriz e os demais quadros.\n\n## Reestruturar um PPC a partir do anterior\n\nPara reestruturar um curso, voc\u00ea n\u00e3o precisa come\u00e7ar do zero. Clique em **Importar PPC** e escolha o PPC vigente do curso, em PDF ou Word. O gerador l\u00ea o documento e aproveita o que j\u00e1 existe: textos do projeto, disciplinas e cargas hor\u00e1rias da matriz, ementas, programas com objetivos, unidades e bibliografias, laborat\u00f3rios, acervo e corpo docente. Antes de confirmar, ele mostra um resumo do que conseguiu ler.\n\nA partir da\u00ed, voc\u00ea edita apenas o que muda na nova vers\u00e3o. A matriz lida fica registrada como **matriz vigente**, e a matriz que voc\u00ea editar passa a ser a **matriz proposta**. No PPC gerado aparecem as duas, seguidas de um **quadro comparativo** com as disciplinas inclu\u00eddas, exclu\u00eddas e alteradas, com a carga hor\u00e1ria antes e depois. Assim a comiss\u00e3o v\u00ea de imediato o que mudou.\n\nO PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) n\u00e3o pode ser lido; nesse caso, use o arquivo do Word ou o PDF gerado a partir dele.\n\n## Novas funcionalidades\n\n- **Importar PPC:** l\u00ea um PPC em PDF ou Word, preenche o gerador e permite gerar a vers\u00e3o reestruturada, como descrito acima.\n- **A partir de PPC existente:** em **Novo**, voc\u00ea pode abrir o PPC do Curso T\u00e9cnico em Eletrot\u00e9cnica para se orientar, e ent\u00e3o edit\u00e1-lo e adapt\u00e1-lo ao seu curso. Ele vem sem nomes de pessoas: docentes, t\u00e9cnicos, proponentes e equipes elaboradoras ficam para voc\u00ea preencher.\n- **PPC completo em PDF:** al\u00e9m do arquivo .docx, o PPC sai em PDF, no padr\u00e3o institucional, sem precisar do Word.\n- **PPC completo \u2013 Novo Layout:** uma proposta de visual mais moderno, com capa em destaque, indicadores do curso e tabelas mais limpas, em PDF ou .docx, para avalia\u00e7\u00e3o como novo padr\u00e3o.\n- **Matriz por ano:** mostra as disciplinas em cart\u00f5es coloridos por n\u00facleo e \u00e1rea, uma coluna por s\u00e9rie, com a carga hor\u00e1ria semanal e anual de cada uma. As disciplinas da parte espec\u00edfica podem ser arrastadas de uma s\u00e9rie para outra, e o gerador recalcula as cargas e aponta conflitos de pr\u00e9-requisito. A matriz pode ser impressa ou salva em PDF.\n- **Pr\u00e9via do PPC:** mostra o documento sendo montado ao lado do formul\u00e1rio, atualizado enquanto voc\u00ea digita.\n- **Pend\u00eancias:** a confer\u00eancia autom\u00e1tica lista o que falta ou est\u00e1 fora das normas, e cada item leva direto ao campo a ser corrigido.\n- **Ementa da forma\u00e7\u00e3o geral:** na matriz curricular, ao passar o mouse sobre uma disciplina da forma\u00e7\u00e3o geral, aparece a ementa dela.\n- **Normas e documentos:** re\u00fane as Orienta\u00e7\u00f5es para elabora\u00e7\u00e3o de PPC (que tamb\u00e9m podem ser lidas dentro do gerador), o Quadro 1, o check list de an\u00e1lise, o procedimento de encaminhamento e os links da legisla\u00e7\u00e3o.\n- **Sobre este gerador:** este texto, com o passo a passo de uso.\n- **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas por WhatsApp, e-mail ou outro aplicativo.\n\n## Trabalho em equipe (edi\u00e7\u00e3o simult\u00e2nea)\n\nV\u00e1rios professores podem trabalhar no mesmo PPC ao mesmo tempo. Cada altera\u00e7\u00e3o aparece para os outros em poucos segundos.\n\n1. Ao abrir o gerador, entre com a sua **conta Google pessoal** (Gmail). O gerador recebe s\u00f3 o nome e o e-mail.\n2. Com o PPC aberto, clique em **Equipe \u2192 Compartilhar este PPC**. Ele passa a ficar guardado na nuvem.\n3. Em **Equipe**, copie o **link do PPC** e envie aos colegas. Quem abre o link e entra com a conta Google passa a fazer parte da equipe e j\u00e1 cai no PPC.\n4. Em **Equipe**, voc\u00ea v\u00ea quem participa e quem est\u00e1 on-line, e pode **remover** algu\u00e9m (a pessoa perde o acesso, mesmo tendo o link). No cabe\u00e7alho aparecem as iniciais de quem est\u00e1 on-line; no menu lateral e no ement\u00e1rio, as iniciais mostram onde cada pessoa est\u00e1 editando.\n\nAs altera\u00e7\u00f5es s\u00e3o gravadas campo a campo; no mesmo campo, vale a \u00faltima. **Salvar** continua funcionando e \u00e9 uma boa c\u00f3pia de seguran\u00e7a. A c\u00f3pia do `index.html` aberta direto no computador funciona sem login (e sem a edi\u00e7\u00e3o em equipe).\n\nA edi\u00e7\u00e3o em equipe usa o mesmo projeto do Firebase (`gerador-ppc-ufcimg`) do gerador da gradua\u00e7\u00e3o, com as mesmas regras. Nada precisa ser alterado no Firebase: basta publicar neste reposit\u00f3rio o mesmo arquivo `colab.json` usado no reposit\u00f3rio da gradua\u00e7\u00e3o. Cada PPC compartilhado fica marcado com o gerador em que foi criado, e cada gerador s\u00f3 lista e abre os seus.\n\n## \u00c1rea da C\u00e2mara de Ensino (Gerador de Parecer)\n\nM\u00f3dulo restrito aos relatores da C\u00e2mara de Ensino, para analisar os PPCs recebidos e emitir o relat\u00f3rio de an\u00e1lise.\n\n- **Quem acessa:** s\u00f3 quem entra com a conta Google e est\u00e1 cadastrado como relator. Para os demais professores o bot\u00e3o **C\u00e2mara** n\u00e3o aparece, e as an\u00e1lises guardadas na nuvem n\u00e3o s\u00e3o leg\u00edveis.\n- **Abre sempre limpa:** ao entrar na C\u00e2mara n\u00e3o h\u00e1 nenhum parecer carregado. O relator importa o PPC recebido (**PDF**, **Word** ou `.json`), abre uma an\u00e1lise do painel, retoma a que estava neste navegador ou come\u00e7a um **parecer em branco**.\n- **Leitura do PPC:** a tela *PPC em an\u00e1lise* lista os apontamentos que alimentam o parecer; clicar em um deles abre o **PPC comentado** na posi\u00e7\u00e3o correspondente. *Visualizar PPC em an\u00e1lise* abre o documento montado ao lado da tela, para leitura corrida.\n- **PPC comentado:** o pr\u00f3prio projeto recebido com cada apontamento **destacado em amarelo** e **comentado no corpo do documento**, mais a rela\u00e7\u00e3o de todos os apontamentos na \u00faltima p\u00e1gina. Pelo bot\u00e3o *Salvar em PDF* vira um arquivo para devolver \u00e0 coordena\u00e7\u00e3o do curso. O gerador de parecer n\u00e3o altera o PPC: ele l\u00ea, destaca e comenta. O mesmo recurso est\u00e1 no gerador de PPC, para a coordena\u00e7\u00e3o conferir antes de enviar.\n- **Equipe da C\u00e2mara:** relatores cadastrados, quem est\u00e1 na C\u00e2mara no momento e quem publicou an\u00e1lise do PPC aberto. A C\u00e2mara tem equipe pr\u00f3pria, independente da equipe que elabora o PPC.\n- **Fechar an\u00e1lise:** encerra o trabalho atual e deixa a C\u00e2mara em branco para outro PPC; se houver altera\u00e7\u00e3o n\u00e3o salva, pergunta antes.\n- **Publicar an\u00e1lise:** p\u00f5e a an\u00e1lise no painel da C\u00e2mara (antes chamado \"enviar para a nuvem\"). O arquivo `.json` com PPC e parecer sai por *Salvar an\u00e1lise*, no alto da tela.\n- **Situa\u00e7\u00e3o identificada:** par\u00e1grafo de abertura da an\u00e1lise do m\u00e9rito. O gerador j\u00e1 sugere um texto a partir do que a verifica\u00e7\u00e3o encontrou (curso, carga hor\u00e1ria, n\u00famero de pend\u00eancias e os itens onde se concentram) e o relator reescreve \u00e0 vontade; o bot\u00e3o *Sugerir texto* refaz a sugest\u00e3o.\n- **Datas na equipe:** o quadro de equipe mostra quando o documento foi compartilhado, quando foi a \u00faltima altera\u00e7\u00e3o na nuvem e por quem, e quando \u00e9 desta c\u00f3pia aberta na tela.\n- **Equipe da C\u00e2mara (cabe\u00e7alho):** permite que mais de um relator trabalhe no mesmo parecer ao mesmo tempo, como a Equipe do gerador de PPC. As duas s\u00e3o independentes: os pareceres compartilhados na C\u00e2mara n\u00e3o aparecem no gerador de PPC, e vice-versa.\n- **Blocos coloridos:** cada bloco do relat\u00f3rio tem cor pr\u00f3pria na barra lateral e no t\u00edtulo, para localizar depressa a parte a alterar.\n- **O que a confer\u00eancia n\u00e3o faz:** o m\u00e9rito do projeto. A verifica\u00e7\u00e3o autom\u00e1tica cobre o que se apura por regra; a an\u00e1lise pedag\u00f3gica \u00e9 do relator, e por isso todo o parecer \u00e9 edit\u00e1vel.\n- **O parecer:** o gerador confere o PPC contra as normas e monta um **parecer pr\u00e9vio** no modelo da C\u00e2mara \u2014 identifica\u00e7\u00e3o, hist\u00f3rico, an\u00e1lise do m\u00e9rito em quadro \u00fanico (Item, Observa\u00e7\u00e3o, Situa\u00e7\u00e3o e Item a alterar) e voto da comiss\u00e3o. Na coluna *Situa\u00e7\u00e3o* fica o que foi encontrado e o que deve ser feito; em *Item a alterar*, o ponto do PPC a corrigir e, quando o projeto veio de um PDF, a p\u00e1gina em que ele est\u00e1. Bloco em branco n\u00e3o entra no documento.\n- **Tudo \u00e9 edit\u00e1vel, item a item:** cada bloco, cada linha do quadro e cada apontamento tem uma caixa de sele\u00e7\u00e3o que o inclui ou n\u00e3o no documento, sem apag\u00e1-lo. Textos podem ser reescritos, linhas e grupos podem ser criados, removidos e reordenados, e a situa\u00e7\u00e3o de cada linha pode ser trocada \u00e0 m\u00e3o. O bot\u00e3o *Atualizar com a verifica\u00e7\u00e3o* roda a confer\u00eancia de novo sem apagar o que o relator escreveu.\n- **Relatores:** o parecer aceita mais de um relator; a lista permite incluir, alterar e excluir, e traz os relatores j\u00e1 cadastrados na C\u00e2mara.\n- **Compara\u00e7\u00e3o de vers\u00f5es:** na rean\u00e1lise, a vers\u00e3o anterior pode vir em `.json`, PDF ou Word; as diferen\u00e7as viram itens edit\u00e1veis do parecer.\n- **Sa\u00eddas:** ficam no alto da etapa *PPC em an\u00e1lise* \u2014 parecer em PDF e em Word (.docx), a confer\u00eancia antes de publicar e o envio ao **painel da C\u00e2mara de Ensino**, onde os relatores acompanham os PPCs em an\u00e1lise.\n- **Tutorial pr\u00f3prio:** dentro da \u00e1rea, em *Recursos \u2192 Tutorial*, e em PDF (`Tutorial-Gerador-Parecer.pdf`).\n\n### Como cadastrar os relatores (feito por quem administra o gerador)\n\nNo Firebase, em **Realtime Database \u2192 Dados**, crie o n\u00f3 `relatores` e, dentro dele, uma chave por relator: o e-mail com os pontos trocados por v\u00edrgulas. Exemplo:\n\n```\nrelatores\n  \u2514\u2500 fulano,sobrenome@gmail,com\n       \u2514\u2500 nome: \"Prof. Fulano de Tal\"\n```\n\nO e-mail \u00e9 o da conta Google com que a pessoa entra no gerador. Para tirar o acesso, apague a chave. As regras do arquivo `firebase-regras.json` (republique-as ap\u00f3s esta atualiza\u00e7\u00e3o) garantem que s\u00f3 esses e-mails leiam e gravem as an\u00e1lises; cada relator consegue consultar apenas o pr\u00f3prio cadastro.\n\nO c\u00f3digo do m\u00f3dulo est\u00e1 no `index.html`, que \u00e9 p\u00fablico \u2014 o que fica protegido s\u00e3o os dados: os PPCs e as an\u00e1lises enviados \u00e0 nuvem. Um PPC que o relator abre do pr\u00f3prio computador nunca sai dali, a n\u00e3o ser que ele envie para o painel.\n\n## Onde ficam os dados\n\nTudo o que voc\u00ea digita fica salvo apenas no seu navegador. Nada \u00e9 enviado para servidores, a n\u00e3o ser os PPCs que voc\u00ea compartilhar em **Equipe**, que ficam no Firebase com acesso restrito \u00e0 equipe de cada PPC. Por isso:\n\n- para continuar em outro computador, ou passar o projeto a um colega, use **Salvar**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir**;\n- se voc\u00ea limpar os dados do navegador, o rascunho se perde, ent\u00e3o salve o projeto com frequ\u00eancia;\n- ao reabrir o gerador, ele come\u00e7a em branco e oferece **Continuar rascunho** caso haja trabalho anterior salvo naquele navegador.\n\n## Estat\u00edsticas de uso\n\nNa vers\u00e3o publicada no GitHub Pages, o gerador conta acessos de forma an\u00f4nima com o [GoatCounter](https://www.goatcounter.com), que n\u00e3o usa cookies e n\u00e3o identifica pessoas. S\u00e3o registrados apenas o n\u00famero de visitas, as etapas abertas e a\u00e7\u00f5es como \u201cgerou PPC em PDF\u201d, \u201cimportou PPC\u201d ou \u201cbaixou o tutorial\u201d. Nenhum texto, nome ou dado do PPC \u00e9 enviado. A c\u00f3pia do `index.html` aberta no pr\u00f3prio computador n\u00e3o conta nada.\n\n## No celular\n\nO gerador funciona tamb\u00e9m no celular e no tablet. Em telas pequenas, o menu de etapas fica no bot\u00e3o \u2630, no alto \u00e0 esquerda, e os formul\u00e1rios passam para uma coluna. As tabelas largas e a matriz rolam para o lado com o dedo. Como arrastar cart\u00f5es n\u00e3o funciona bem na tela de toque, use as setas \u25c0 \u25b6 (t\u00e9cnico) ou, na gradua\u00e7\u00e3o, toque no cart\u00e3o e escolha o per\u00edodo no painel. Para textos longos e para gerar o PPC final, o computador continua sendo mais confort\u00e1vel.\n\n## Vers\u00e3o\n\nA vers\u00e3o aparece no topo da tela, ao lado do t\u00edtulo. Quando o gerador for atualizado, a vers\u00e3o muda. Se algu\u00e9m relatar um problema, vale conferir primeiro se est\u00e1 usando a vers\u00e3o mais recente. Se o navegador continuar mostrando uma vers\u00e3o antiga, recarregue a p\u00e1gina (Ctrl+Shift+R no Windows, Cmd+Shift+R no Mac).\n\n## Arquivos deste reposit\u00f3rio\n\n- **`index.html`**: o gerador completo, em um \u00fanico arquivo. \u00c9 o que o GitHub Pages publica no link acima.\n- **`README.md`**: este texto.\n- **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial do gerador de PPC, baixado pelo bot\u00e3o do gerador.\n- **`Tutorial-Gerador-Parecer.pdf`**: o tutorial da \u00e1rea da C\u00e2mara de Ensino.\n- **`firebase-regras.json`**: as regras de acesso do Firebase (as mesmas do reposit\u00f3rio da gradua\u00e7\u00e3o, j\u00e1 com a \u00e1rea da C\u00e2mara).\n- **`goatcounter.txt`**: o c\u00f3digo do contador de acessos (GoatCounter). Apague o arquivo para desligar a contagem.\n- **`colab.json`**: a configura\u00e7\u00e3o da edi\u00e7\u00e3o em equipe (o mesmo arquivo do reposit\u00f3rio da gradua\u00e7\u00e3o). Sem ele, o gerador funciona normalmente, s\u00f3 que sem a edi\u00e7\u00e3o em equipe e sem pedir login.\n\nO `index.html` tamb\u00e9m funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.\n\n## Sugest\u00f5es e problemas\n\nSugest\u00f5es, corre\u00e7\u00f5es e relatos de problemas s\u00e3o bem-vindos. Abra uma *issue* aqui no GitHub ou fale diretamente com o autor.\n\n## Autoria\n\nDesenvolvido pelo Prof. Alexandre Rodrigues Farias, do Departamento de Eletr\u00f4nica e Biom\u00e9dica da UFCIMG.\n\nLinkedIn: https://www.linkedin.com/in/alexandre-rodrigues-farias\n";
+const README_MD = "# Gerador de PPC para Cursos T\u00e9cnicos\n\nEste \u00e9 um gerador de Projeto Pedag\u00f3gico de Curso (PPC) para os cursos t\u00e9cnicos da Educa\u00e7\u00e3o Profissional T\u00e9cnica de N\u00edvel M\u00e9dio (EPTNM) da Universidade Federal de Ci\u00eancia e Inova\u00e7\u00e3o de Minas Gerais (UFCIMG), o antigo CEFET-MG.\n\nA ideia deste gerador \u00e9 que as coordena\u00e7\u00f5es de curso produzam PPCs institucionais padronizados, todos no mesmo formato: as mesmas tabelas, carga hor\u00e1ria dentro das normas, ementas coerentes com os programas e refer\u00eancias em ABNT. O coordenador de curso preenche o conte\u00fado, e o documento sai pronto, no padr\u00e3o institucional.\n\n**Acesse:** https://alexandrefariasbh.github.io/gerador-de-PPC/\n\n## Como funciona\n\nO gerador abre direto no navegador, sem instalar nada e sem login. Funciona no computador, no notebook e no tablet, nas vers\u00f5es atuais do Chrome, Edge, Firefox e Safari (16.4 ou mais recente). O PPC em PDF sai completo, com cabe\u00e7alho, rodap\u00e9 e n\u00famero de p\u00e1gina, no Chrome e no Edge; nos outros navegadores, use o arquivo .docx para ter o documento completo.\n\nAo abrir, ele come\u00e7a em branco, s\u00f3 com as disciplinas da forma\u00e7\u00e3o geral j\u00e1 preenchidas, porque elas s\u00e3o padronizadas para todos os cursos. Voc\u00ea segue as etapas do menu lateral:\n\n1. **Identifica\u00e7\u00e3o e capa:** curso, campus, forma de oferta, hist\u00f3rico e comiss\u00e3o proponente.\n2. **Textos do projeto:** apresenta\u00e7\u00e3o, justificativa, objetivos, perfil profissional e as demais se\u00e7\u00f5es.\n3. **Matriz curricular:** as disciplinas da parte espec\u00edfica e a carga hor\u00e1ria de cada uma.\n4. **Matriz por ano:** a matriz em cart\u00f5es coloridos, s\u00e9rie a s\u00e9rie, para visualizar o curso e remanejar disciplinas.\n5. **Ement\u00e1rio e programas:** ementa, objetivos, conte\u00fado, metodologia e bibliografia de cada disciplina.\n6. **Instala\u00e7\u00f5es e laborat\u00f3rios:** ambientes, laborat\u00f3rios com seus equipamentos e acervo bibliogr\u00e1fico.\n7. **Corpo docente:** o professor respons\u00e1vel por cada disciplina e o corpo t\u00e9cnico.\n8. **Pend\u00eancias:** a confer\u00eancia autom\u00e1tica de todo o projeto, com o **PPC comentado** \u2014 o projeto em PDF com cada pend\u00eancia destacada em amarelo e comentada no pr\u00f3prio documento.\n9. **Gerar documentos:** o PPC pronto em Word ou PDF, e as tabelas em Excel.\n\nEnquanto voc\u00ea preenche, o gerador confere tudo contra o documento orientador, a Resolu\u00e7\u00e3o CEPE n\u00ba 15/2022 e o check list de an\u00e1lise da comiss\u00e3o. Ele avisa, por exemplo, quando a carga hor\u00e1ria da parte espec\u00edfica n\u00e3o atinge o m\u00ednimo do curso, quando uma s\u00e9rie passa do limite semanal, quando falta uma unidade no programa ou quando uma refer\u00eancia est\u00e1 fora da ABNT. Cada aviso tem um atalho que leva direto ao campo a ser corrigido. Os n\u00fameros vermelhos no menu mostram quantas pend\u00eancias ainda faltam em cada etapa.\n\n## O que o gerador entrega\n\n- **PPC completo**, no padr\u00e3o institucional, em arquivo PDF ou .docx: capa, folha de rosto, sum\u00e1rio, ficha de identifica\u00e7\u00e3o, matriz curricular, ement\u00e1rio, programas, laborat\u00f3rios, acervo e corpo docente.\n- **PPC completo \u2013 Novo Layout**, uma proposta de visual mais moderno para o mesmo conte\u00fado, em arquivo PDF ou .docx, para avalia\u00e7\u00e3o como novo padr\u00e3o.\n- **Tabelas em Excel**, para a comiss\u00e3o conferir a matriz e os demais quadros.\n\n## Reestruturar um PPC a partir do anterior\n\nPara reestruturar um curso, voc\u00ea n\u00e3o precisa come\u00e7ar do zero. Clique em **Importar PPC** e escolha o PPC vigente do curso, em PDF ou Word. O gerador l\u00ea o documento e aproveita o que j\u00e1 existe: textos do projeto, disciplinas e cargas hor\u00e1rias da matriz, ementas, programas com objetivos, unidades e bibliografias, laborat\u00f3rios, acervo e corpo docente. Antes de confirmar, ele mostra um resumo do que conseguiu ler.\n\nA partir da\u00ed, voc\u00ea edita apenas o que muda na nova vers\u00e3o. A matriz lida fica registrada como **matriz vigente**, e a matriz que voc\u00ea editar passa a ser a **matriz proposta**. No PPC gerado aparecem as duas, seguidas de um **quadro comparativo** com as disciplinas inclu\u00eddas, exclu\u00eddas e alteradas, com a carga hor\u00e1ria antes e depois. Assim a comiss\u00e3o v\u00ea de imediato o que mudou.\n\nO PDF precisa ter texto. Um PDF digitalizado (imagem escaneada) n\u00e3o pode ser lido; nesse caso, use o arquivo do Word ou o PDF gerado a partir dele.\n\n## Novas funcionalidades\n\n- **Importar PPC:** l\u00ea um PPC em PDF ou Word, preenche o gerador e permite gerar a vers\u00e3o reestruturada, como descrito acima.\n- **A partir de PPC existente:** em **Novo**, voc\u00ea pode abrir o PPC do Curso T\u00e9cnico em Eletrot\u00e9cnica para se orientar, e ent\u00e3o edit\u00e1-lo e adapt\u00e1-lo ao seu curso. Ele vem sem nomes de pessoas: docentes, t\u00e9cnicos, proponentes e equipes elaboradoras ficam para voc\u00ea preencher.\n- **PPC completo em PDF:** al\u00e9m do arquivo .docx, o PPC sai em PDF, no padr\u00e3o institucional, sem precisar do Word.\n- **PPC completo \u2013 Novo Layout:** uma proposta de visual mais moderno, com capa em destaque, indicadores do curso e tabelas mais limpas, em PDF ou .docx, para avalia\u00e7\u00e3o como novo padr\u00e3o.\n- **Matriz por ano:** mostra as disciplinas em cart\u00f5es coloridos por n\u00facleo e \u00e1rea, uma coluna por s\u00e9rie, com a carga hor\u00e1ria semanal e anual de cada uma. As disciplinas da parte espec\u00edfica podem ser arrastadas de uma s\u00e9rie para outra, e o gerador recalcula as cargas e aponta conflitos de pr\u00e9-requisito. A matriz pode ser impressa ou salva em PDF.\n- **Pr\u00e9via do PPC:** mostra o documento sendo montado ao lado do formul\u00e1rio, atualizado enquanto voc\u00ea digita.\n- **Pend\u00eancias:** a confer\u00eancia autom\u00e1tica lista o que falta ou est\u00e1 fora das normas, e cada item leva direto ao campo a ser corrigido.\n- **Ementa da forma\u00e7\u00e3o geral:** na matriz curricular, ao passar o mouse sobre uma disciplina da forma\u00e7\u00e3o geral, aparece a ementa dela.\n- **Normas e documentos:** re\u00fane as Orienta\u00e7\u00f5es para elabora\u00e7\u00e3o de PPC (que tamb\u00e9m podem ser lidas dentro do gerador), o Quadro 1, o check list de an\u00e1lise, o procedimento de encaminhamento e os links da legisla\u00e7\u00e3o.\n- **Sobre este gerador:** este texto, com o passo a passo de uso.\n- **Compartilhar o gerador de PPC:** copia o link do gerador para enviar a colegas por WhatsApp, e-mail ou outro aplicativo.\n\n## Trabalho em equipe (edi\u00e7\u00e3o simult\u00e2nea)\n\nV\u00e1rios professores podem trabalhar no mesmo PPC ao mesmo tempo. Cada altera\u00e7\u00e3o aparece para os outros em poucos segundos.\n\n1. Ao abrir o gerador, entre com a sua **conta Google pessoal** (Gmail). O gerador recebe s\u00f3 o nome e o e-mail.\n2. Com o PPC aberto, clique em **Equipe \u2192 Compartilhar este PPC**. Ele passa a ficar guardado na nuvem.\n3. Em **Equipe**, copie o **link do PPC** e envie aos colegas. Quem abre o link e entra com a conta Google passa a fazer parte da equipe e j\u00e1 cai no PPC.\n4. Em **Equipe**, voc\u00ea v\u00ea quem participa e quem est\u00e1 on-line, e pode **remover** algu\u00e9m (a pessoa perde o acesso, mesmo tendo o link). No cabe\u00e7alho aparecem as iniciais de quem est\u00e1 on-line; no menu lateral e no ement\u00e1rio, as iniciais mostram onde cada pessoa est\u00e1 editando.\n\nAs altera\u00e7\u00f5es s\u00e3o gravadas campo a campo; no mesmo campo, vale a \u00faltima. **Salvar** continua funcionando e \u00e9 uma boa c\u00f3pia de seguran\u00e7a. A c\u00f3pia do `index.html` aberta direto no computador funciona sem login (e sem a edi\u00e7\u00e3o em equipe).\n\nA edi\u00e7\u00e3o em equipe usa o mesmo projeto do Firebase (`gerador-ppc-ufcimg`) do gerador da gradua\u00e7\u00e3o, com as mesmas regras. Nada precisa ser alterado no Firebase: basta publicar neste reposit\u00f3rio o mesmo arquivo `colab.json` usado no reposit\u00f3rio da gradua\u00e7\u00e3o. Cada PPC compartilhado fica marcado com o gerador em que foi criado, e cada gerador s\u00f3 lista e abre os seus.\n\n## \u00c1rea da C\u00e2mara de Ensino (Gerador de Parecer)\n\nM\u00f3dulo restrito aos relatores da C\u00e2mara de Ensino, para analisar os PPCs recebidos e emitir o relat\u00f3rio de an\u00e1lise.\n\n- **Quem acessa:** s\u00f3 quem entra com a conta Google e est\u00e1 cadastrado como relator. Para os demais professores o bot\u00e3o **C\u00e2mara** n\u00e3o aparece, e as an\u00e1lises guardadas na nuvem n\u00e3o s\u00e3o leg\u00edveis.\n- **Abre sempre limpa:** ao entrar na C\u00e2mara n\u00e3o h\u00e1 nenhum parecer carregado. O relator importa o PPC recebido (**PDF**, **Word** ou `.json`), abre uma an\u00e1lise do painel, retoma a que estava neste navegador ou come\u00e7a um **parecer em branco**.\n- **Leitura do PPC:** a tela *PPC em an\u00e1lise* lista os apontamentos que alimentam o parecer; clicar em um deles abre o **PPC comentado** na posi\u00e7\u00e3o correspondente. *Visualizar PPC em an\u00e1lise* abre o documento montado ao lado da tela, para leitura corrida.\n- **PPC comentado:** o pr\u00f3prio projeto recebido com cada apontamento **destacado em amarelo** e **comentado no corpo do documento**, mais a rela\u00e7\u00e3o de todos os apontamentos na \u00faltima p\u00e1gina. Pelo bot\u00e3o *Salvar em PDF* vira um arquivo para devolver \u00e0 coordena\u00e7\u00e3o do curso. O gerador de parecer n\u00e3o altera o PPC: ele l\u00ea, destaca e comenta. O mesmo recurso est\u00e1 no gerador de PPC, para a coordena\u00e7\u00e3o conferir antes de enviar.\n- **Equipe da C\u00e2mara:** relatores cadastrados, quem est\u00e1 na C\u00e2mara no momento e quem publicou an\u00e1lise do PPC aberto. A C\u00e2mara tem equipe pr\u00f3pria, independente da equipe que elabora o PPC.\n- **Fechar an\u00e1lise:** encerra o trabalho atual e deixa a C\u00e2mara em branco para outro PPC; se houver altera\u00e7\u00e3o n\u00e3o salva, pergunta antes.\n- **Publicar an\u00e1lise:** p\u00f5e a an\u00e1lise no painel da C\u00e2mara (antes chamado \"enviar para a nuvem\"). O arquivo `.json` com PPC e parecer sai por *Salvar an\u00e1lise*, no alto da tela.\n- **Situa\u00e7\u00e3o identificada:** par\u00e1grafo de abertura da an\u00e1lise do m\u00e9rito. O gerador j\u00e1 sugere um texto a partir do que a verifica\u00e7\u00e3o encontrou (curso, carga hor\u00e1ria, n\u00famero de pend\u00eancias e os itens onde se concentram) e o relator reescreve \u00e0 vontade; o bot\u00e3o *Sugerir texto* refaz a sugest\u00e3o.\n- **Datas na equipe:** o quadro de equipe mostra quando o documento foi compartilhado, quando foi a \u00faltima altera\u00e7\u00e3o na nuvem e por quem, e quando \u00e9 desta c\u00f3pia aberta na tela.\n- **Equipe da C\u00e2mara (cabe\u00e7alho):** permite que mais de um relator trabalhe no mesmo parecer ao mesmo tempo, como a Equipe do gerador de PPC. As duas s\u00e3o independentes: os pareceres compartilhados na C\u00e2mara n\u00e3o aparecem no gerador de PPC, e vice-versa.\n- **Blocos coloridos:** cada bloco do relat\u00f3rio tem cor pr\u00f3pria na barra lateral e no t\u00edtulo, para localizar depressa a parte a alterar.\n- **O que a confer\u00eancia n\u00e3o faz:** o m\u00e9rito do projeto. A verifica\u00e7\u00e3o autom\u00e1tica cobre o que se apura por regra; a an\u00e1lise pedag\u00f3gica \u00e9 do relator, e por isso todo o parecer \u00e9 edit\u00e1vel.\n- **O parecer:** o gerador confere o PPC contra as normas e monta um **parecer pr\u00e9vio** no modelo da C\u00e2mara \u2014 identifica\u00e7\u00e3o, hist\u00f3rico, an\u00e1lise do m\u00e9rito em quadro \u00fanico (Item, Observa\u00e7\u00e3o, Situa\u00e7\u00e3o e Item a alterar) e voto da comiss\u00e3o. Na coluna *Situa\u00e7\u00e3o* fica o que foi encontrado e o que deve ser feito; em *Item a alterar*, o ponto do PPC a corrigir e, quando o projeto veio de um PDF, a p\u00e1gina em que ele est\u00e1. Bloco em branco n\u00e3o entra no documento.\n- **Tudo \u00e9 edit\u00e1vel, item a item:** cada bloco, cada linha do quadro e cada apontamento tem uma caixa de sele\u00e7\u00e3o que o inclui ou n\u00e3o no documento, sem apag\u00e1-lo. Textos podem ser reescritos, linhas e grupos podem ser criados, removidos e reordenados, e a situa\u00e7\u00e3o de cada linha pode ser trocada \u00e0 m\u00e3o. O bot\u00e3o *Atualizar com a verifica\u00e7\u00e3o* roda a confer\u00eancia de novo sem apagar o que o relator escreveu.\n- **Relatores:** o parecer aceita mais de um relator; a lista permite incluir, alterar e excluir, e traz os relatores j\u00e1 cadastrados na C\u00e2mara.\n- **Compara\u00e7\u00e3o de vers\u00f5es:** na rean\u00e1lise, a vers\u00e3o anterior pode vir em `.json`, PDF ou Word; as diferen\u00e7as viram itens edit\u00e1veis do parecer.\n- **Sa\u00eddas:** ficam no alto da etapa *PPC em an\u00e1lise* \u2014 parecer em PDF e em Word (.docx), a confer\u00eancia antes de publicar e o envio ao **painel da C\u00e2mara de Ensino**, onde os relatores acompanham os PPCs em an\u00e1lise.\n- **Tutorial pr\u00f3prio:** dentro da \u00e1rea, em *Recursos \u2192 Tutorial*, e em PDF (`Tutorial-Gerador-Parecer.pdf`).\n\n### Como cadastrar os relatores (feito por quem administra o gerador)\n\nNo Firebase, em **Realtime Database \u2192 Dados**, crie o n\u00f3 `relatores` e, dentro dele, uma chave por relator: o e-mail com os pontos trocados por v\u00edrgulas. Exemplo:\n\n```\nrelatores\n  \u2514\u2500 fulano,sobrenome@gmail,com\n       \u2514\u2500 nome: \"Prof. Fulano de Tal\"\n```\n\nO e-mail \u00e9 o da conta Google com que a pessoa entra no gerador. Para tirar o acesso, apague a chave. As regras do arquivo `firebase-regras.json` (republique-as ap\u00f3s esta atualiza\u00e7\u00e3o) garantem que s\u00f3 esses e-mails leiam e gravem as an\u00e1lises; cada relator consegue consultar apenas o pr\u00f3prio cadastro.\n\nO c\u00f3digo do m\u00f3dulo est\u00e1 no `index.html`, que \u00e9 p\u00fablico \u2014 o que fica protegido s\u00e3o os dados: os PPCs e as an\u00e1lises enviados \u00e0 nuvem. Um PPC que o relator abre do pr\u00f3prio computador nunca sai dali, a n\u00e3o ser que ele envie para o painel.\n\n## Onde ficam os dados\n\nTudo o que voc\u00ea digita fica salvo apenas no seu navegador. Nada \u00e9 enviado para servidores, a n\u00e3o ser os PPCs que voc\u00ea compartilhar em **Equipe**, que ficam no Firebase com acesso restrito \u00e0 equipe de cada PPC. Por isso:\n\n- para continuar em outro computador, ou passar o projeto a um colega, use **Salvar**. Ele gera um arquivo no seu computador, que depois pode ser aberto em **Abrir**;\n- se voc\u00ea limpar os dados do navegador, o rascunho se perde, ent\u00e3o salve o projeto com frequ\u00eancia;\n- ao reabrir o gerador, ele come\u00e7a em branco e oferece **Continuar rascunho** caso haja trabalho anterior salvo naquele navegador.\n\n## Estat\u00edsticas de uso\n\nNa vers\u00e3o publicada no GitHub Pages, o gerador conta acessos de forma an\u00f4nima com o [GoatCounter](https://www.goatcounter.com), que n\u00e3o usa cookies e n\u00e3o identifica pessoas. S\u00e3o registrados apenas o n\u00famero de visitas, as etapas abertas e a\u00e7\u00f5es como \u201cgerou PPC em PDF\u201d, \u201cimportou PPC\u201d ou \u201cbaixou o tutorial\u201d. Nenhum texto, nome ou dado do PPC \u00e9 enviado. A c\u00f3pia do `index.html` aberta no pr\u00f3prio computador n\u00e3o conta nada.\n\n## No celular\n\nO gerador funciona tamb\u00e9m no celular e no tablet. Em telas pequenas, o menu de etapas fica no bot\u00e3o \u2630, no alto \u00e0 esquerda, e os formul\u00e1rios passam para uma coluna. As tabelas largas e a matriz rolam para o lado com o dedo. Como arrastar cart\u00f5es n\u00e3o funciona bem na tela de toque, use as setas \u25c0 \u25b6 (t\u00e9cnico) ou, na gradua\u00e7\u00e3o, toque no cart\u00e3o e escolha o per\u00edodo no painel. Para textos longos e para gerar o PPC final, o computador continua sendo mais confort\u00e1vel.\n\n## Vers\u00e3o\n\nA vers\u00e3o aparece no topo da tela, ao lado do t\u00edtulo. Quando o gerador for atualizado, a vers\u00e3o muda. Se algu\u00e9m relatar um problema, vale conferir primeiro se est\u00e1 usando a vers\u00e3o mais recente. Se o navegador continuar mostrando uma vers\u00e3o antiga, recarregue a p\u00e1gina (Ctrl+Shift+R no Windows, Cmd+Shift+R no Mac).\n\n## Arquivos deste reposit\u00f3rio\n\n- **`index.html`**: o gerador completo, em um \u00fanico arquivo. \u00c9 o que o GitHub Pages publica no link acima.\n- **`README.md`**: este texto.\n- **`Tutorial-Gerador-PPC-Tecnico.pdf`**: o tutorial do gerador de PPC, baixado pelo bot\u00e3o do gerador.\n- **`Tutorial-Gerador-Parecer.pdf`**: o tutorial da \u00e1rea da C\u00e2mara de Ensino.\n- **`firebase-regras.json`**: as regras de acesso do Firebase (as mesmas do reposit\u00f3rio da gradua\u00e7\u00e3o, j\u00e1 com a \u00e1rea da C\u00e2mara).\n- **`goatcounter.txt`**: o c\u00f3digo do contador de acessos (GoatCounter). Apague o arquivo para desligar a contagem.\n- **`colab.json`**: a configura\u00e7\u00e3o da edi\u00e7\u00e3o em equipe (o mesmo arquivo do reposit\u00f3rio da gradua\u00e7\u00e3o). Sem ele, o gerador funciona normalmente, s\u00f3 que sem a edi\u00e7\u00e3o em equipe e sem pedir login.\n\nO `index.html` tamb\u00e9m funciona sozinho: baixe o arquivo e abra com dois cliques, mesmo sem internet.\n\n## Sugest\u00f5es e problemas\n\nSugest\u00f5es, corre\u00e7\u00f5es e relatos de problemas s\u00e3o bem-vindos. Abra uma *issue* aqui no GitHub ou envie um e-mail para alexandrefarias@cefetmg.br.\n\n## Autoria\n\nDesenvolvido pelo Prof. Alexandre Rodrigues Farias, do Departamento de Eletr\u00f4nica e Biom\u00e9dica da UFCIMG. Sugest\u00f5es e problemas, envie um e-mail para alexandrefarias@cefetmg.br.\n\nLinkedIn: https://www.linkedin.com/in/alexandre-rodrigues-farias\n";
 function vSobre() {
-  const inl = t => h(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`(.+?)`/g, '<code>$1</code>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const inl = t => h(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`(.+?)`/g, '<code>$1</code>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/([\w.+-]+@[\w-]+\.[\w.]{2,})/g, '<a href="mailto:$1">$1</a>');
   const secs = README_MD.split(/\n(?=## )/).filter(x => !/^## Arquivos deste repositório/.test(x));
   let out = '';
   secs.forEach((sec, i) => {
@@ -4459,7 +4541,7 @@ function headerClick(id) {
   if (window.ANALISE_HDRCLICK && ANALISE_HDRCLICK(id)) return;
   const HS = { bAbrir: 'Abriu projeto', bSalvar: 'Salvou projeto', bImportar: 'Importar PPC', bShare: 'Compartilhou o gerador' }; if (HS[id]) stat('acao/' + id, HS[id]);
   if (id === 'bAbrir') return $('#fAbrir').click();
-  if (id === 'bSalvar') { if (P) { P.meta = Object.assign({}, P.meta, { versaoGerador: VERSAO }); baixar(`Projeto-PPC-${slug()}.json`, JSON.stringify(P, null, 1)); toast('Projeto salvo no seu computador. Para continuar depois, use “Abrir”.'); } return; }
+  if (id === 'bSalvar') { if (P) { P.meta = Object.assign({}, P.meta, { versaoGerador: VERSAO }); baixar(nomeArquivo('json', 'BKP'), JSON.stringify(P, null, 1)); toast('Projeto salvo no seu computador. Para continuar depois, use “Abrir”.'); } return; }
   if (id === 'bImportar') return $('#fImportar').click();
   if (id === 'bEquipe') { stat('acao/bEquipe', 'Equipe'); return colabAbrir(); }
   if (id === 'bComent') { stat('acao/bComent', 'PPC comentado'); return window.PPC_COMENTADO_ABRIR ? PPC_COMENTADO_ABRIR() : toast('Indisponível nesta cópia.'); }
@@ -4641,11 +4723,44 @@ function colabSair(silencioso) {
   CO.unsub.forEach(f => { try { f && f(); } catch (e) { } }); CO.unsub = [];
   if (CO.pid && CO.B && CO.user) { try { CO.B.set(`presenca/${CO.pid}/${CO.user.uid}`, null); } catch (e) { } }
   CO.pid = null; CO.ultimo = null; CO.pres = {}; CO.membros = {}; clearTimeout(CO.timer);
+  if (P && P.meta) delete P.meta.pid;
   if (!silencioso) { history.replaceState(null, '', location.pathname + location.search); toast('Você saiu do PPC compartilhado. O que está na tela continua como cópia neste navegador.'); render(); }
 }
-function colabMudou() { if (!CO.pid || CO.carregando || !CO.ultimo) return; CO.pendente = true; clearTimeout(CO.timer); CO.timer = setTimeout(colabEnvia, 350); }
+// apaga da nuvem um PPC compartilhado: tira do índice de cada membro e remove o projeto
+async function colabExcluirPPC(pid) {
+  const B = CO.B; if (!B || !pid) return;
+  try {
+    const membros = (await B.get(`projetos/${pid}/membros`)) || {};
+    for (const k of Object.keys(membros)) { try { await B.set(`indice/${k}/${pid}`, null); } catch (e) { } }
+    try { await B.set(`indice/${chaveEmail(CO.user.email)}/${pid}`, null); } catch (e) { }
+    try { await B.set(`presenca/${pid}`, null); } catch (e) { }
+    await B.set(`projetos/${pid}`, null);
+    if (CO.pid === pid) colabSair(true);
+    toast('PPC compartilhado excluído da nuvem. O que está na sua tela continua aqui, como cópia.');
+  } catch (e) { toast('Não foi possível excluir: ' + ((e && e.message) || e)); }
+  colabAbrir();
+}
+// Trava de segurança: o projeto da tela guarda o pid a que pertence. Se o que está na tela for outro
+// projeto (troca em bloco por Novo, Abrir ou Importar), nada é enviado — senão o PPC da equipe seria
+// gravado por cima. Vale mesmo que algum caminho futuro esqueça de desconectar antes de trocar.
+let avisouTroca = false;
+function colabProjetoBate() {
+  if (!CO.pid) return false;
+  const marca = P && P.meta && P.meta.pid;
+  if (!marca) { if (P && P.meta) P.meta.pid = CO.pid; return true; }
+  return marca === CO.pid;
+}
+function colabMudou() {
+  if (!CO.pid || CO.carregando || !CO.ultimo) return;
+  if (!colabProjetoBate()) {
+    if (!avisouTroca) { avisouTroca = true; toast('O projeto nesta tela não é o da equipe conectada: nada foi gravado na nuvem. Saia do PPC compartilhado ou reabra-o pela Equipe.'); }
+    return;
+  }
+  avisouTroca = false;
+  CO.pendente = true; clearTimeout(CO.timer); CO.timer = setTimeout(colabEnvia, 350);
+}
 function colabEnvia() {
-  if (!CO.pid || !CO.ultimo) return;
+  if (!CO.pid || !CO.ultimo || !colabProjetoBate()) return;
   const agora = planoDe(P), f = {};
   Object.keys(agora).forEach(k => { if (agora[k] !== CO.ultimo[k]) f[k] = agora[k]; });
   Object.keys(CO.ultimo).forEach(k => { if (!(k in agora)) f[k] = null; });
@@ -4663,7 +4778,7 @@ function colabRecebe(v) {
   if (!CO.pid) return;
   if (!v) { CO.carregando = false; return; }
   const remoto = achatar(v);
-  if (CO.carregando || !CO.ultimo) { CO.carregando = false; CO.ultimo = remoto; P = migrate(deArvore(v)); ADAPT.carregou(); render(); toast('PPC compartilhado aberto. As alterações aparecem para todos em tempo real.'); return; }
+  if (CO.carregando || !CO.ultimo) { CO.carregando = false; CO.ultimo = remoto; P = migrate(deArvore(v)); P.meta.pid = CO.pid; ADAPT.carregou(); render(); toast('PPC compartilhado aberto. As alterações aparecem para todos em tempo real.'); return; }
   // mescla em três vias: o que mudou aqui e ainda não foi enviado prevalece
   const local = planoDe(P), mesclado = Object.assign({}, remoto);
   Object.keys(local).forEach(k => { if (local[k] !== CO.ultimo[k]) mesclado[k] = local[k]; });
@@ -4713,6 +4828,23 @@ async function colabAbrir() {
   if (!B) return modal(`<div class="colab"><h3>Trabalhar em equipe</h3><p>Com a edição em equipe, 3, 4 ou mais professores trabalham no mesmo PPC ao mesmo tempo: cada alteração aparece para todos em poucos segundos, e o gerador mostra quem está on-line e onde cada um está editando.</p><p class="muted">Este recurso ainda não foi ativado nesta cópia do gerador. Quem administra o gerador precisa criar o projeto gratuito no Firebase e publicar o arquivo <code>colab.json</code> ao lado do <code>index.html</code> (o passo a passo está em “Sobre este gerador”). Também não funciona com o arquivo aberto direto do computador; use o endereço publicado.</p><div class="row" style="justify-content:flex-end"><button data-mact="cancelar">Fechar</button></div></div>`);
   if (!CO.user) return portao();
   const me = chaveEmail(CO.user.email);
+  // a lista dos PPCs do usuário é montada sempre, para aparecer também enquanto ele trabalha num deles
+  let lista = {}; try { lista = (await B.get(`indice/${me}`)) || {}; } catch (e) { }
+  const itens = Object.entries(lista).filter(([, x]) => geradorDe(x) === ADAPT.gerador);
+  const metas = {};
+  await Promise.all(itens.map(async ([pid]) => { try { metas[pid] = (await B.get(`projetos/${pid}/meta`)) || {}; } catch (e) { metas[pid] = {}; } }));
+  itens.sort((a, b) => ((metas[b[0]] || {}).atualizado || b[1].criado || 0) - ((metas[a[0]] || {}).atualizado || a[1].criado || 0));
+  const listaHTML = () => itens.length ? `<div class="ndocs">${itens.map(([pid, x]) => {
+    const m = metas[pid] || {}, naNuvem = !!(m.criado || m.atualizado), atual = pid === CO.pid;
+    const meuEmail = String((CO.user && CO.user.email) || '').toLowerCase();
+    const dono = (m.dono && CO.user && m.dono === CO.user.uid) || (m.donoEmail && String(m.donoEmail).toLowerCase() === meuEmail) || x.papel === 'dono';
+    const quando = naNuvem ? `${dono ? 'criado por você' : 'você participa'} · última alteração ${h(fmtQuando(m.atualizado || m.criado))}${m.por ? ' por ' + h(m.por) : ''}` : 'já não está na nuvem';
+    const botoes = !naNuvem ? `<button class="sm ghost" data-colab="tirar" data-pid="${h(pid)}">Tirar da lista</button>`
+      : (atual ? '<span class="tag">aberto agora</span>' : `<button class="sm pri" data-colab="abrir" data-pid="${h(pid)}">Abrir</button>`)
+      + (dono ? `<button class="sm ghost" data-colab="excluir" data-pid="${h(pid)}" data-k="x${h(pid)}" title="Apaga este ${ADAPT.termo || 'PPC'} da nuvem, para todos os membros">Excluir</button>`
+        : `<button class="sm ghost" data-colab="tirar" data-pid="${h(pid)}" title="Sai da equipe deste ${ADAPT.termo || 'PPC'} e tira-o da sua lista">Tirar da lista</button>`);
+    return `<div class="ndoc${atual ? ' atual' : ''}"><div class="ni">PPC</div><div style="flex:1"><b>${h(m.curso || x.curso || 'PPC sem nome')}</b><div class="muted" style="font-size:12.5px">${quando}</div><div class="muted" style="font-size:11.5px">id: ${h(pid)}</div></div><span class="row" style="gap:6px">${botoes}</span></div>`;
+  }).join('')}</div>` : '<p class="muted">Nenhum ainda.</p>';
   if (CO.pid) {
     if (!CO.meta || !CO.meta.criado) { try { CO.meta = Object.assign({}, CO.meta, (await B.get(`projetos/${CO.pid}/meta`)) || {}); } catch (e) { } }
     const mem = Object.entries(CO.membros || {}).filter(([, x]) => !x.removido);
@@ -4728,26 +4860,53 @@ async function colabAbrir() {
       <table class="t"><thead><tr><th>Membro</th><th style="width:110px">Situação</th>${CO.dono ? '<th style="width:70px"></th>' : ''}</tr></thead><tbody>${mem.map(([k, x]) => `<tr><td><b>${h(x.nome || emailDe(k))}</b><div class="muted" style="font-size:12px">${h(emailDe(k))}${x.papel === 'dono' ? ' · criou o PPC' : ''}</div></td><td>${on.has(k) ? '<span style="color:#0f8f92;font-weight:700">● on-line</span>' : '<span class="muted">fora</span>'}</td>${CO.dono ? `<td>${x.papel === 'dono' ? '' : `<button class="sm ghost" data-colab="remover" data-k="${h(k)}">Remover</button>`}</td>` : ''}</tr>`).join('')}</tbody></table>
       <div class="flabel">Link do PPC para a equipe</div><div class="row" style="gap:8px"><input id="colabLink" value="${h(link)}" readonly style="flex:1"><button data-colab="copiar">Copiar</button></div>
       <p class="muted" style="font-size:12.5px">Envie este link para os colegas (por e-mail ou WhatsApp). Quem abre o link e entra com a conta Google passa a fazer parte da equipe deste PPC e já cai nele. Só quem tem o link entra. Se alguém não deveria estar na equipe, use “Remover”: a pessoa perde o acesso, mesmo tendo o link.</p>
-      <div class="row" style="justify-content:space-between;margin-top:10px;gap:8px"><button class="ghost" data-colab="sair">Sair do PPC compartilhado</button><span><button class="ghost" data-colab="logout">Trocar de conta</button> <button data-mact="cancelar">Fechar</button></span></div></div>`);
+      <div class="flabel">Seus ${(ADAPT.termo || 'PPC') === 'parecer' ? 'pareceres' : 'PPCs'} compartilhados <span class="muted" style="font-weight:400">clique em <b>Abrir</b> para passar a outro; o desta tela já está gravado na nuvem</span></div>
+      ${listaHTML()}
+      <div class="row" style="justify-content:space-between;margin-top:10px;gap:8px"><span><button class="ghost" data-colab="sair">Sair do ${ADAPT.termo || 'PPC'} compartilhado</button>${(CO.dono || (CO.meta && CO.user && CO.meta.dono === CO.user.uid)) ? ` <button class="ghost" data-colab="excluir" data-pid="${h(CO.pid)}" data-k="x${h(CO.pid)}" title="Apaga este ${ADAPT.termo || 'PPC'} da nuvem, para todos os membros">Excluir da nuvem</button>` : ''}</span><span><button class="ghost" data-colab="logout">Trocar de conta</button> <button data-mact="cancelar">Fechar</button></span></div></div>`);
   }
-  let lista = {}; try { lista = (await B.get(`indice/${me}`)) || {}; } catch (e) { }
-  const itens = Object.entries(lista).filter(([, x]) => geradorDe(x) === ADAPT.gerador);
-  const metas = {};
-  await Promise.all(itens.map(async ([pid]) => { try { metas[pid] = (await B.get(`projetos/${pid}/meta`)) || {}; } catch (e) { metas[pid] = {}; } }));
-  itens.sort((a, b) => ((metas[b[0]] || {}).atualizado || b[1].criado || 0) - ((metas[a[0]] || {}).atualizado || a[1].criado || 0));
-  modal(`<div class="colab"><h3>Trabalhar em equipe</h3><p class="muted">Você entrou como <b>${h(CO.user.nome)}</b> (${h(CO.user.email)}).</p>
+  // sem equipe conectada o projeto é uma cópia local: a janela diz isso de saída, com nome e horário
+  const localEm = P && P.meta && P.meta.atualizado ? Date.parse(P.meta.atualizado) : 0;
+  modal(`<div class="colab"><h3>${(ADAPT.termo || 'PPC')==='parecer'?'Parecer':'PPC'} nesta tela: ${h(ADAPT.curso(P) || 'sem nome')}</h3>
+    <p class="muted">Você entrou como <b>${h(CO.user.nome)}</b> (${h(CO.user.email)}).</p>
+    <table class="t" style="margin-bottom:10px"><tbody>
+      <tr><td style="width:190px" class="muted">Onde este projeto está</td><td><b style="color:#8a6100">Só neste navegador</b> — ainda não está na nuvem, e ninguém mais o vê</td></tr>
+      <tr><td class="muted">Última alteração na sua tela</td><td>${h(fmtQuando(localEm))}</td></tr>
+      <tr><td class="muted">Disciplinas / eixos</td><td>${(P.disciplinas || []).length} disciplina(s) · ${(P.eixos || []).length} eixo(s)</td></tr>
+    </tbody></table>
+    <p class="muted" style="font-size:12.5px">Guarde uma cópia com <b>Salvar</b> (arquivo .json no seu computador) ou publique-o na nuvem com o botão abaixo, para trabalhar em equipe e não depender deste navegador.</p>
     <div class="flabel">${(ADAPT.termo || 'PPC')==='parecer'?'Pareceres compartilhados com você':'PPCs compartilhados com você'}</div>
-    ${itens.length ? `<div class="ndocs">${itens.map(([pid, x]) => `<div class="ndoc"><div class="ni">PPC</div><div style="flex:1"><b>${h(x.curso || 'PPC sem nome')}</b><div class="muted" style="font-size:12.5px">${x.papel === 'dono' ? 'criado por você' : 'você participa'} · última alteração ${h(fmtQuando((metas[pid] || {}).atualizado || (metas[pid] || {}).criado))}${(metas[pid] || {}).por ? ' por ' + h((metas[pid] || {}).por) : ''}</div></div><button class="sm pri" data-colab="abrir" data-pid="${h(pid)}">Abrir</button></div>`).join('')}</div>` : '<p class="muted">Nenhum ainda.</p>'}
+    ${listaHTML()}
     <div class="flabel">Compartilhar o ${ADAPT.termo || 'PPC'} que está aberto agora</div>
     <p class="muted" style="font-size:12.5px;margin-top:0">Cria um ${ADAPT.termo || 'PPC'} compartilhado a partir do que está na tela (${h(ADAPT.curso(P) || 'projeto sem nome')}). Depois, envie o link para os colegas.</p>
     <div class="row" style="justify-content:space-between;gap:8px"><button class="ghost" data-colab="logout">Trocar de conta</button><span><button class="ghost" data-mact="cancelar">Fechar</button> <button class="pri" data-colab="criar">Compartilhar este PPC</button></span></div></div>`);
 }
-async function colabCriar() {
+// Porta única para trocar o projeto da tela (Novo, Abrir, Importar): com a equipe conectada,
+// desconecta antes, para que a troca nunca seja espelhada na nuvem.
+let TROCA = null;
+function trocarProjeto(fn, oque) {
+  if (!CO.pid) return fn();
+  const nome = (CO.meta && CO.meta.curso) || ADAPT.curso(P) || 'PPC sem nome';
+  TROCA = fn;
+  modal(`<h3>Sair do PPC compartilhado antes?</h3>
+    <p>Você está conectado à equipe de <b>${h(nome)}</b>, e ${oque} substitui o projeto que está nesta tela.</p>
+    <p class="muted">Para não gravar por cima do PPC da equipe, o gerador se <b>desconecta</b> dele antes de abrir o outro. O PPC compartilhado continua na nuvem, intacto, e você volta a ele pela <b>Equipe</b> quando quiser.</p>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="ghost" data-mact="cancelar">Cancelar</button><button class="pri" data-trocar="1">Desconectar e continuar</button></div>`);
+}
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('[data-trocar]')) return;
+  ev.preventDefault(); modal('');
+  const f = TROCA; TROCA = null;
+  colabSair(true); render();
+  if (f) f();
+});
+async function colabCriar(semAbrir) {
   const B = CO.B, me = chaveEmail(CO.user.email), pid = B.chave(), agora = Date.now();
+  P.meta.pid = pid;
   const proj = { meta: { dono: CO.user.uid, donoEmail: CO.user.email, curso: ADAPT.curso(P), criado: agora, gerador: ADAPT.gerador }, membros: { [me]: { papel: 'dono', nome: CO.user.nome } }, dados: paraArvore(Object.assign({}, P, { anterior: P.anterior || null }), true) };
   try { await B.set(`projetos/${pid}`, proj); await B.set(`indice/${me}/${pid}`, { curso: ADAPT.curso(P), papel: 'dono', criado: agora, gerador: ADAPT.gerador }); }
   catch (e) { return toast('Não foi possível criar o PPC compartilhado: ' + e.message); }
-  await colabEntrar(pid); colabAbrir();
+  await colabEntrar(pid);
+  if (!semAbrir) colabAbrir();
 }
 document.addEventListener('click', async ev => {
   const b = ev.target.closest('[data-colab]'); if (!b) return;
@@ -4757,6 +4916,8 @@ document.addEventListener('click', async ev => {
   if (a === 'logout') { modal(''); colabSair(true); await CO.B.logout(); CO.user = null; portao(); }
   if (a === 'abrir') await colabEntrar(b.dataset.pid);
   if (a === 'criar') await colabCriar();
+  if (a === 'excluir' && confirmaRm(b)) await colabExcluirPPC(b.dataset.pid);
+  if (a === 'tirar') { try { await CO.B.set(`indice/${chaveEmail(CO.user.email)}/${b.dataset.pid}`, null); } catch (e) { } colabAbrir(); }
   if (a === 'remover' && confirmaRm(b)) { await CO.B.update(`projetos/${CO.pid}/membros/${b.dataset.k}`, { removido: true }); await CO.B.set(`indice/${b.dataset.k}/${CO.pid}`, null).catch(() => { }); toast('Membro removido. Mesmo com o link, essa pessoa não consegue mais entrar.'); }
   if (a === 'copiar') { const i = $('#colabLink'); try { await navigator.clipboard.writeText(i.value); } catch (e) { i.select(); document.execCommand('copy'); } toast('Link copiado.'); }
   if (a === 'sair') { modal(''); colabSair(); }
@@ -4775,6 +4936,27 @@ let rmPend = null;
 function confirmaRm(b) { if (rmPend === b.dataset.k) { rmPend = null; return true; } rmPend = b.dataset.k; b.textContent = 'Confirmar'; setTimeout(() => { rmPend = null; }, 4000); return false; }
 // abre direto pelo link de convite (#ppc=…)
 setTimeout(() => { colabIniciar().then(B => { if (!B && /ppc=/.test(location.hash)) colabAbrir(); }).catch(e => console.warn('Equipe indisponível:', e)); }, 0);
+
+// quadro da equipe deste PPC, para a etapa de gerar documentos
+function equipeCard() {
+  const local = P && P.meta && P.meta.atualizado ? fmtQuando(Date.parse(P.meta.atualizado)) : 'sem registro';
+  if (!(CO.B && CO.pid)) return `<div class="card"><h3>Equipe deste PPC</h3>
+    <p class="muted">Este PPC não está compartilhado: por enquanto, só você o edita, neste navegador.</p>
+    <table class="t"><tbody><tr><td style="width:230px" class="muted">Última alteração nesta cópia</td><td>${h(local)}</td></tr></tbody></table>
+    <div class="row" style="margin-top:10px"><button class="sm" data-act="colabAbrir">Compartilhar com a equipe</button></div></div>`;
+  const mem = Object.entries(CO.membros || {}).filter(([, x]) => !x.removido);
+  const on = new Set(Object.values(CO.pres || {}).map(x => chaveEmail(x.email)));
+  return `<div class="card"><h3>Equipe deste PPC</h3>
+    <table class="t" style="margin-bottom:12px"><tbody>
+      <tr><td style="width:230px" class="muted">Última alteração na nuvem</td><td><b>${h(fmtQuando(CO.meta && (CO.meta.atualizado || CO.meta.criado)))}</b>${CO.meta && CO.meta.por ? ' · por ' + h(CO.meta.por) : ''}</td></tr>
+      <tr><td class="muted">Compartilhado em</td><td>${h(fmtQuando(CO.meta && CO.meta.criado))}</td></tr>
+      <tr><td class="muted">Esta cópia na sua tela</td><td>${h(local)}</td></tr>
+    </tbody></table>
+    <table class="t"><thead><tr><th>Quem trabalha neste PPC</th><th style="width:160px">Situação</th></tr></thead><tbody>
+      ${mem.map(([k, x]) => `<tr><td><b>${h(x.nome || emailDe(k))}</b><div class="muted" style="font-size:12px">${h(emailDe(k))}${x.papel === 'dono' ? ' · criou o PPC' : ''}</div></td><td>${on.has(k) ? '<span style="color:#0f8f92;font-weight:700">● editando agora</span>' : '<span class="muted">fora no momento</span>'}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Ninguém mais na equipe ainda.</td></tr>'}
+    </tbody></table>
+    <div class="row" style="margin-top:10px"><button class="sm" data-act="colabAbrir">Abrir a equipe</button></div></div>`;
+}
 
 // ---------- Módulo de análise de PPC (Câmara de Ensino) ----------
 // Acesso restrito: só aparece para quem estiver na lista de relatores do Firebase.
@@ -4832,7 +5014,7 @@ window.ANALISE_HDR = () => {
     + `<button class="tb" id="bAEquipe" title="Trabalhar no mesmo parecer com outros relatores, ao mesmo tempo. A equipe da Câmara é independente da equipe do gerador de PPC.">${IC.equipe}<span>Equipe</span></button>`
     + `<button class="tb" id="bAFechar"${anTemPPC() ? '' : ' disabled'} title="Encerra a análise atual e deixa a Câmara pronta para um novo PPC">${IC.branco}<span>Fechar análise</span></button>`
     + `<button class="tb pri" id="bAGerar"${anTemPPC() ? '' : ' disabled'}>${IC.gerar}<span>Prévia do parecer</span></button>`
-    + `<button class="tb" id="bASair">${IC.share}<span>Sair da Câmara de Ensino</span></button>`;
+    + `<button class="tb" id="bASair" title="Volta para a área do professor, no gerador de PPC. A análise fica salva neste navegador.">${IC.sair}<span>Sair da Câmara de Ensino</span></button>`;
 };
 window.ANALISE_HDRCLICK = function (id) {
   if (id === 'bCamara') { anEntrar(); return true; }
